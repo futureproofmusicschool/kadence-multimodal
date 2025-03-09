@@ -47,6 +47,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ username = 'student' }) => {
         
         <p className="description">
           Use this interface to share your screen with Kadence and get live realtime advice on your tracks and projects.
+          <br /><br />
           This version of Kadence cannot listen to your music directly, but you can share your screen and talk with it about what you're doing in your DAW or other audio software, getting advice on how to mix your project, arrange your track, or just troubleshoot software issues.
         </p>
         
