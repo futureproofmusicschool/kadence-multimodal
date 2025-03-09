@@ -22,6 +22,7 @@ import { UseMediaStreamResult } from "../../hooks/use-media-stream-mux";
 import { useScreenCapture } from "../../hooks/use-screen-capture";
 import { AudioRecorder } from "../../lib/audio-recorder";
 import AudioPulse from "../audio-pulse/AudioPulse";
+import SystemAudioPulse from "../audio-pulse/SystemAudioPulse";
 import "./control-tray.scss";
 
 export type ControlTrayProps = {
@@ -65,6 +66,7 @@ function ControlTray({
   const [activeVideoStream, setActiveVideoStream] =
     useState<MediaStream | null>(null);
   const [inVolume, setInVolume] = useState(0);
+  const [systemVolume, setSystemVolume] = useState(0);
   const [audioRecorder] = useState(() => new AudioRecorder());
   const [muted, setMuted] = useState(false);
   const [hasSystemAudio, setHasSystemAudio] = useState(false);
@@ -95,13 +97,27 @@ function ControlTray({
         },
       ]);
     };
+    
+    const onSystemVolume = (vol: number) => {
+      setSystemVolume(vol);
+    };
+    
     if (connected && !muted && audioRecorder) {
-      audioRecorder.on("data", onData).on("volume", setInVolume).start();
+      audioRecorder
+        .on("data", onData)
+        .on("volume", setInVolume)
+        .on("systemVolume", onSystemVolume)
+        .start();
     } else {
       audioRecorder.stop();
+      // Reset volumes when stopped
+      setSystemVolume(0);
     }
     return () => {
-      audioRecorder.off("data", onData).off("volume", setInVolume);
+      audioRecorder
+        .off("data", onData)
+        .off("volume", setInVolume)
+        .off("systemVolume", onSystemVolume);
     };
   }, [connected, client, muted, audioRecorder]);
 
@@ -165,6 +181,7 @@ function ControlTray({
     // Remove additional audio source when stopping
     audioRecorder.removeAdditionalAudioSource();
     setHasSystemAudio(false);
+    setSystemVolume(0);
   };
 
   return (
@@ -185,6 +202,12 @@ function ControlTray({
         <div className="action-button no-action outlined">
           <AudioPulse volume={volume} active={connected} hover={false} />
         </div>
+
+        {hasSystemAudio && screenCapture.isStreaming && (
+          <div className="action-button no-action outlined system-audio-meter">
+            <SystemAudioPulse volume={systemVolume} active={connected} hover={false} />
+          </div>
+        )}
 
         {supportsVideo && (
           <>

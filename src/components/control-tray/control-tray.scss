@@ -202,3 +202,51 @@
     white-space: nowrap;
   }
 }
+
+.systemAudioPulse {
+  display: flex;
+  width: 24px;
+  justify-content: space-evenly;
+  align-items: center;
+  transition: all 0.5s;
+
+  & > div {
+    background-color: var(--Blue-300);
+    border-radius: 1000px;
+    width: 4px;
+    min-height: 4px;
+    border-radius: 1000px;
+    transition: height 0.1s;
+  }
+
+  &.hover > div {
+    animation: hover 1.4s infinite alternate ease-in-out;
+  }
+
+  height: 4px;
+  transition: opacity 0.333s;
+
+  &.active {
+    opacity: 1;
+
+    & > div {
+      background-color: var(--Blue-500);
+    }
+  }
+}
+
+.system-audio-meter {
+  position: relative;
+  
+  &:before {
+    content: "";
+    position: absolute;
+    bottom: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 16px;
+    background-color: var(--Blue-500);
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  }
+}

@@ -39,6 +39,7 @@ export class AudioRecorder extends EventEmitter {
   recording: boolean = false;
   recordingWorklet: AudioWorkletNode | undefined;
   vuWorklet: AudioWorkletNode | undefined;
+  systemVuWorklet: AudioWorkletNode | undefined;
 
   private starting: Promise<void> | null = null;
 
@@ -114,14 +115,33 @@ export class AudioRecorder extends EventEmitter {
     // Disconnect existing additional source if any
     if (this.additionalSource) {
       this.additionalSource.disconnect();
+      if (this.systemVuWorklet) {
+        this.systemVuWorklet.disconnect();
+      }
     }
 
     // Create a new source from the stream
     this.additionalSource = this.audioContext.createMediaStreamSource(stream);
     
-    // Connect to the worklets
-    this.additionalSource.connect(this.recordingWorklet);
-    this.additionalSource.connect(this.vuWorklet);
+    // Create a separate volume meter for system audio
+    const vuWorkletName = "system-vu-meter";
+    this.audioContext.audioWorklet.addModule(
+      createWorketFromSrc(vuWorkletName, VolMeterWorket)
+    ).then(() => {
+      this.systemVuWorklet = new AudioWorkletNode(this.audioContext!, vuWorkletName);
+      this.systemVuWorklet.port.onmessage = (ev: MessageEvent) => {
+        this.emit("systemVolume", ev.data.volume);
+      };
+      
+      // Connect the system audio source to both the recording worklet and its own volume meter
+      this.additionalSource!.connect(this.recordingWorklet!);
+      this.additionalSource!.connect(this.systemVuWorklet);
+    }).catch(err => {
+      console.error("Failed to create system audio volume meter:", err);
+      
+      // Even if the volume meter fails, still connect to recording worklet
+      this.additionalSource!.connect(this.recordingWorklet!);
+    });
   }
 
   /**
@@ -131,6 +151,14 @@ export class AudioRecorder extends EventEmitter {
     if (this.additionalSource) {
       this.additionalSource.disconnect();
       this.additionalSource = undefined;
+    }
+    
+    if (this.systemVuWorklet) {
+      this.systemVuWorklet.disconnect();
+      this.systemVuWorklet = undefined;
+      
+      // Emit zero volume to update the UI
+      this.emit("systemVolume", 0);
     }
   }
 
@@ -145,6 +173,7 @@ export class AudioRecorder extends EventEmitter {
       this.recordingWorklet = undefined;
       this.vuWorklet = undefined;
       this.additionalSource = undefined;
+      this.systemVuWorklet = undefined;
     };
     if (this.starting) {
       this.starting.then(handleStop);
