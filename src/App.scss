@@ -169,3 +169,26 @@ body {
   border-radius: 32px;
   max-height: fit-content;
 }
+
+.main-app-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 20px;
+  margin: 0 auto;
+  position: relative;
+  
+  .stream {
+    flex-grow: 0;
+    width: 100%;
+    max-width: 900px;
+    border-radius: 12px;
+    margin-top: 20px;
+    max-height: 50vh;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+}

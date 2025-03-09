@@ -21,6 +21,7 @@ import { LiveAPIProvider } from "./contexts/LiveAPIContext";
 import SidePanel from "./components/side-panel/SidePanel";
 import { Kadence } from "./components/altair/Kadence";
 import ControlTray from "./components/control-tray/ControlTray";
+import InfoPanel from "./components/info-panel/InfoPanel";
 import cn from "classnames";
 
 // Generate a base WebSocket URL without the API key
@@ -126,6 +127,10 @@ function App() {
             <div className="main-app-area">
               {/* Pass username to Kadence component */}
               <Kadence username={username} />
+              
+              {/* Add the info panel */}
+              <InfoPanel username={username} />
+              
               <video
                 className={cn("stream", {
                   hidden: !videoRef.current || !videoStream,
