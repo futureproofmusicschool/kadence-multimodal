@@ -19,9 +19,16 @@ export async function fetchUserData(username: string): Promise<UserData | null> 
       return null;
     }
 
+    console.log(`Fetching user data for: ${username}`);
+
     // Call our secure API endpoint (hosted as a Vercel serverless function)
     // This endpoint handles Google Sheets API authentication securely on the server
-    const response = await fetch(`/api/user-data?username=${encodeURIComponent(username)}`);
+    const apiUrl = `/api/user-data?username=${encodeURIComponent(username)}`;
+    console.log(`Calling API endpoint: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl);
+    
+    console.log(`API response status: ${response.status}`);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -30,6 +37,8 @@ export async function fetchUserData(username: string): Promise<UserData | null> 
     }
     
     const userData = await response.json();
+    console.log('User data received:', userData);
+    
     return userData;
   } catch (error) {
     console.error('Error fetching user data:', error);
