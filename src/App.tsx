@@ -16,6 +16,7 @@
 
 import { useRef, useState } from "react";
 import "./App.scss";
+import "./theme-override.scss";
 import { LiveAPIProvider } from "./contexts/LiveAPIContext";
 import SidePanel from "./components/side-panel/SidePanel";
 import { Kadence } from "./components/altair/Kadence";
