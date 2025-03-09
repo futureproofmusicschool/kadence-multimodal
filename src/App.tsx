@@ -19,7 +19,7 @@ import "./App.scss";
 import "./theme-override.scss";
 import { LiveAPIProvider } from "./contexts/LiveAPIContext";
 import SidePanel from "./components/side-panel/SidePanel";
-import { Kadence } from "./components/altair/Kadence";
+import { Kadence } from "./components/kadence/Kadence";
 import ControlTray from "./components/control-tray/ControlTray";
 import InfoPanel from "./components/info-panel/InfoPanel";
 import cn from "classnames";

@@ -39,7 +39,7 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
 
   useEffect(() => {
     setConfig({
-      model: "models/gemini-2.0-pro-exp-02-05",
+      model: "models/gemini-2.0-pro-exp",
       generationConfig: {
         responseModalities: "audio",
         speechConfig: {
@@ -70,4 +70,4 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
   return null;
 }
 
-export const Kadence = memo(KadenceComponent);
+export const Kadence = memo(KadenceComponent); 
