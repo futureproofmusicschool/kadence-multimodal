@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { useEffect, memo } from "react";
+
+import { useEffect, useState } from "react";
 import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
+import { fetchUserData } from "../../utils/googleSheets";
 
 interface KadenceProps {
   username?: string;
@@ -22,9 +24,32 @@ interface KadenceProps {
 
 function KadenceComponent({ username = 'student' }: KadenceProps) {
   const { client, setConfig } = useLiveAPIContext();
+  const [userData, setUserData] = useState<Record<string, string> | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch user data from Google Sheets
+  useEffect(() => {
+    async function getUserData() {
+      setIsLoading(true);
+      try {
+        const data = await fetchUserData(username);
+        setUserData(data);
+        console.log('User data fetched:', data);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    getUserData();
+  }, [username]);
 
   // Set up initial greeting message based on username
   useEffect(() => {
+    // Only send greeting after user data is loaded
+    if (isLoading) return;
+
     // Short delay to make it seem more natural
     const timer = setTimeout(() => {
       if (client && username) {
@@ -35,9 +60,24 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
     }, 1500);
     
     return () => clearTimeout(timer);
-  }, [client, username]);
+  }, [client, username, isLoading]);
 
+  // Configure the AI with system instructions including user data
   useEffect(() => {
+    // Only set config once user data is loaded (or confirmed not available)
+    if (isLoading) return;
+
+    // Format user data into a readable format for the system prompt
+    let userDataText = '';
+    if (userData) {
+      userDataText = 'User Information:\n';
+      Object.entries(userData).forEach(([key, value]) => {
+        if (value && value.trim() !== '') {
+          userDataText += `- ${key}: ${value}\n`;
+        }
+      });
+    }
+
     setConfig({
       model: "models/gemini-2.0-flash-exp",
       generationConfig: {
@@ -55,6 +95,10 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
             
             The current user's name is ${username}. Always address them by name occasionally to make the conversation more personal. Be friendly and supportive of their musical journey.
             
+            ${userDataText}
+            
+            Use the above user information to personalize your interactions and provide relevant advice based on their background, experience level, and musical interests.
+            
             Start the conversation by greeting ${username} and asking how their music is going today.`,
           },
         ],
@@ -64,10 +108,11 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
         { googleSearch: {} },
       ],
     });
-  }, [setConfig, username]);
+  }, [setConfig, username, userData, isLoading]);
   
   // This component doesn't need to render anything visible
   return null;
 }
 
-export const Kadence = memo(KadenceComponent);
+// Memoize component for optimization
+export const Kadence = KadenceComponent;
