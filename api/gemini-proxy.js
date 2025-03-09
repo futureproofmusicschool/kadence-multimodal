@@ -3,9 +3,18 @@
  * This keeps the API key on the server side and prevents client exposure
  */
 export default async function handler(req, res) {
-  // Set CORS headers if needed
+  // Set CORS headers with support for multiple origins
+  const allowedOrigins = [
+    'https://futureproofmusicschool.com',
+    'https://www.futureproofmusicschool.com'
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
   res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', 'https://futureproofmusicschool.com'); // Only allow requests from the music school domain
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
