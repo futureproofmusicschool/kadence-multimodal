@@ -6,7 +6,10 @@ export default async function handler(req, res) {
   // Set CORS headers with support for multiple origins
   const allowedOrigins = [
     'https://futureproofmusicschool.com',
-    'https://www.futureproofmusicschool.com'
+    'https://www.futureproofmusicschool.com',
+    // During development, allow requests from localhost and vercel preview URLs
+    'http://localhost:3000',
+    'https://kadence-multimodal.vercel.app'
   ];
   
   const origin = req.headers.origin;
@@ -29,8 +32,17 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('API proxy received request:', req.body);
+    
     // Get the API key from environment variables
-    const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+    let apiKey = process.env.REACT_APP_GEMINI_API_KEY || '';
+    
+    // Log API key length but not the actual key for security
+    console.log(`API key length: ${apiKey.length}, first 4 chars: ${apiKey.substring(0, 4)}...`);
+    
+    // Clean the API key - remove any '?key=' or similar formatting
+    apiKey = apiKey.replace(/[?&]key=/g, '').trim();
+    console.log(`Cleaned API key length: ${apiKey.length}, first 4 chars: ${apiKey.substring(0, 4)}...`);
     
     if (!apiKey) {
       console.error('API key is not set in environment variables');
@@ -38,19 +50,23 @@ export default async function handler(req, res) {
     }
     
     // Extract WebSocket URL from forwarded request
-    const wsUrl = req.body.wsUrl;
+    let wsUrl = req.body.wsUrl || '';
+    console.log('Original WebSocket URL:', wsUrl);
     
     if (!wsUrl) {
       return res.status(400).json({ error: 'WebSocket URL is required' });
     }
     
-    // Check if the URL already has query parameters
-    const hasQueryParams = wsUrl.includes('?');
+    // Remove any existing key parameter to prevent duplication
+    wsUrl = wsUrl.replace(/[?&]key=[^&]*/g, '');
+    console.log('Cleaned WebSocket URL:', wsUrl);
     
-    // Add the API key to the URL, using & if there are already query params, ? otherwise
-    const secureWsUrl = hasQueryParams ? 
-      `${wsUrl}&key=${apiKey}` : 
-      `${wsUrl}?key=${apiKey}`;
+    // Properly add the key parameter
+    const separator = wsUrl.includes('?') ? '&' : '?';
+    const secureWsUrl = `${wsUrl}${separator}key=${apiKey}`;
+    
+    // Log secure URL structure (without showing full API key)
+    console.log(`Secure URL structure: ${wsUrl}${separator}key=XXXX...`);
     
     // Return the secure URL with the API key
     res.status(200).json({ secureWsUrl });

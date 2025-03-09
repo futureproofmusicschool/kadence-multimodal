@@ -49,6 +49,8 @@ function App() {
     async function getSecureUri() {
       try {
         setIsLoading(true);
+        console.log("Requesting secure WebSocket URL for:", baseUri);
+        
         const response = await fetch('/api/gemini-proxy', {
           method: 'POST',
           headers: {
@@ -63,6 +65,13 @@ function App() {
         }
         
         const data = await response.json();
+        console.log("Received secure WebSocket URL:", data.secureWsUrl);
+        
+        // Make sure we have a valid URL structure
+        if (!data.secureWsUrl || !data.secureWsUrl.startsWith('wss://')) {
+          throw new Error('Invalid WebSocket URL received from server');
+        }
+        
         setSecureUri(data.secureWsUrl);
         setIsLoading(false);
       } catch (error) {
