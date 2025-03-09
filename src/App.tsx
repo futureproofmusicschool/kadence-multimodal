@@ -18,7 +18,7 @@ import { useRef, useState } from "react";
 import "./App.scss";
 import { LiveAPIProvider } from "./contexts/LiveAPIContext";
 import SidePanel from "./components/side-panel/SidePanel";
-import { Altair } from "./components/altair/Altair";
+import { ScreenAdvisor } from "./components/screen-advisor/ScreenAdvisor";
 import ControlTray from "./components/control-tray/ControlTray";
 import cn from "classnames";
 
@@ -44,8 +44,8 @@ function App() {
           <SidePanel />
           <main>
             <div className="main-app-area">
-              {/* APP goes here */}
-              <Altair />
+              {/* Using ScreenAdvisor instead of Altair */}
+              <ScreenAdvisor />
               <video
                 className={cn("stream", {
                   hidden: !videoRef.current || !videoStream,

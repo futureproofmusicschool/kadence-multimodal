@@ -25,6 +25,14 @@ import { AudioRecorder } from "../../lib/audio-recorder";
 import AudioPulse from "../audio-pulse/AudioPulse";
 import "./control-tray.scss";
 
+// Define a custom event for screen sharing changes
+const dispatchScreenSharingEvent = (isScreenSharing: boolean) => {
+  const event = new CustomEvent('screenSharingChange', {
+    detail: { isScreenSharing }
+  });
+  window.dispatchEvent(event);
+};
+
 export type ControlTrayProps = {
   videoRef: RefObject<HTMLVideoElement>;
   children?: ReactNode;
@@ -148,9 +156,19 @@ function ControlTray({
       const mediaStream = await next.start();
       setActiveVideoStream(mediaStream);
       onVideoStreamChange(mediaStream);
+      
+      // Dispatch custom event when screen capture starts
+      if (next === screenCapture) {
+        dispatchScreenSharingEvent(true);
+      }
     } else {
       setActiveVideoStream(null);
       onVideoStreamChange(null);
+      
+      // Dispatch custom event when screen capture stops
+      if (screenCapture.isStreaming) {
+        dispatchScreenSharingEvent(false);
+      }
     }
 
     videoStreams.filter((msr) => msr !== next).forEach((msr) => msr.stop());
