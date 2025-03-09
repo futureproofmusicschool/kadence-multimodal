@@ -16,8 +16,26 @@
 import { useEffect, memo } from "react";
 import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
 
-function KadenceComponent() {
-  const { setConfig } = useLiveAPIContext();
+interface KadenceProps {
+  username?: string;
+}
+
+function KadenceComponent({ username = 'student' }: KadenceProps) {
+  const { client, setConfig } = useLiveAPIContext();
+
+  // Set up initial greeting message based on username
+  useEffect(() => {
+    // Short delay to make it seem more natural
+    const timer = setTimeout(() => {
+      if (client && username) {
+        client.send([{ 
+          text: `Hi ${username}, how's it going with your music today? I'm Kadence, your AI music tutor. I can help you with production techniques, creative direction, or any other music-related questions.` 
+        }]);
+      }
+    }, 1500);
+    
+    return () => clearTimeout(timer);
+  }, [client, username]);
 
   useEffect(() => {
     setConfig({
@@ -33,7 +51,11 @@ function KadenceComponent() {
           {
             text: `You are Kadence, an AI tutor at Futureproof Music School, specializing in electronic music production and creative direction. 
             Your core mission is to provide expert guidance to aspiring musicians in any language, helping them develop their production skills while finding their unique artistic voice.
-             You respond to user voice and screen sharing inputs. Your main purpose is to provide helpful and informative responses to all user queries. Be concise, clear, and engaging in your responses.`,
+            You respond to user voice and screen sharing inputs. Your main purpose is to provide helpful and informative responses to all user queries. Be concise, clear, and engaging in your responses.
+            
+            The current user's name is ${username}. Always address them by name occasionally to make the conversation more personal. Be friendly and supportive of their musical journey.
+            
+            Start the conversation by greeting ${username} and asking how their music is going today.`,
           },
         ],
       },
@@ -42,7 +64,7 @@ function KadenceComponent() {
         { googleSearch: {} },
       ],
     });
-  }, [setConfig]);
+  }, [setConfig, username]);
   
   // This component doesn't need to render anything visible
   return null;

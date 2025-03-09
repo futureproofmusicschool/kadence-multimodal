@@ -29,7 +29,12 @@ const filterOptions = [
   { value: "none", label: "All" },
 ];
 
-export default function SidePanel() {
+// Add types for the component props
+interface SidePanelProps {
+  username?: string;
+}
+
+export default function SidePanel({ username = 'student' }: SidePanelProps) {
   const { connected, client } = useLiveAPIContext();
   const [open, setOpen] = useState(true);
   const loggerRef = useRef<HTMLDivElement>(null);

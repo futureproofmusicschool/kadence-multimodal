@@ -27,17 +27,32 @@ import cn from "classnames";
 const host = "generativelanguage.googleapis.com";
 const baseUri = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent`;
 
+// Function to get username from URL parameters
+function getUsernameFromUrl() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const username = urlParams.get('username');
+  return username || 'student'; // Default to 'student' if no username is provided
+}
+
 function App() {
   // State for the secure URI that includes the API key
   const [secureUri, setSecureUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [username, setUsername] = useState<string>('');
   
   // this video reference is used for displaying the active stream, whether that is the webcam or screen capture
   // feel free to style as you see fit
   const videoRef = useRef<HTMLVideoElement>(null);
   // either the screen capture, the video or null, if null we hide it
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+
+  // Get username when component mounts
+  useEffect(() => {
+    const name = getUsernameFromUrl();
+    setUsername(name);
+    console.log("Username from URL:", name);
+  }, []);
 
   // Fetch the secure URI with the API key from our serverless function
   useEffect(() => {
@@ -85,7 +100,7 @@ function App() {
     return (
       <div className="loading-container">
         <div className="loading-spinner"></div>
-        <p>Loading Kadence AI...</p>
+        <p>Loading Kadence AI for {username || 'you'}...</p>
       </div>
     );
   }
@@ -106,11 +121,11 @@ function App() {
       {/* Important: Pass an empty string as the apiKey, since it's already in the secureUri */}
       <LiveAPIProvider url={secureUri} apiKey="">
         <div className="streaming-console">
-          <SidePanel />
+          <SidePanel username={username} />
           <main>
             <div className="main-app-area">
-              {/* APP goes here */}
-              <Kadence />
+              {/* Pass username to Kadence component */}
+              <Kadence username={username} />
               <video
                 className={cn("stream", {
                   hidden: !videoRef.current || !videoStream,
