@@ -35,8 +35,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'WebSocket URL is required' });
     }
     
-    // Add the API key to the URL
-    const secureWsUrl = `${wsUrl}?key=${apiKey}`;
+    // Check if the URL already has query parameters
+    const hasQueryParams = wsUrl.includes('?');
+    
+    // Add the API key to the URL, using & if there are already query params, ? otherwise
+    const secureWsUrl = hasQueryParams ? 
+      `${wsUrl}&key=${apiKey}` : 
+      `${wsUrl}?key=${apiKey}`;
     
     // Return the secure URL with the API key
     res.status(200).json({ secureWsUrl });
