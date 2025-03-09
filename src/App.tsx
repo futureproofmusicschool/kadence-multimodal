@@ -23,12 +23,7 @@ import { Kadence } from "./components/altair/Kadence";
 import ControlTray from "./components/control-tray/ControlTray";
 import cn from "classnames";
 
-// No need to directly reference the API key here
-// const API_KEY = process.env.REACT_APP_GEMINI_API_KEY as string;
-// if (typeof API_KEY !== "string") {
-//   throw new Error("set REACT_APP_GEMINI_API_KEY in .env");
-// }
-
+// Generate a base WebSocket URL without the API key
 const host = "generativelanguage.googleapis.com";
 const baseUri = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent`;
 
@@ -65,7 +60,8 @@ function App() {
         }
         
         const data = await response.json();
-        console.log("Received secure WebSocket URL:", data.secureWsUrl);
+        console.log("Received secure WebSocket URL (partial):", 
+          data.secureWsUrl.substring(0, data.secureWsUrl.indexOf('key=') + 7) + '***');
         
         // Make sure we have a valid URL structure
         if (!data.secureWsUrl || !data.secureWsUrl.startsWith('wss://')) {
@@ -107,6 +103,7 @@ function App() {
 
   return (
     <div className="App">
+      {/* Important: Pass an empty string as the apiKey, since it's already in the secureUri */}
       <LiveAPIProvider url={secureUri} apiKey="">
         <div className="streaming-console">
           <SidePanel />

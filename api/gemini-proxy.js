@@ -57,16 +57,18 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'WebSocket URL is required' });
     }
     
-    // Remove any existing key parameter to prevent duplication
-    wsUrl = wsUrl.replace(/[?&]key=[^&]*/g, '');
-    console.log('Cleaned WebSocket URL:', wsUrl);
+    // GUARANTEED CLEAN APPROACH: 
+    // 1. Remove any query string completely
+    if (wsUrl.includes('?')) {
+      wsUrl = wsUrl.substring(0, wsUrl.indexOf('?'));
+      console.log('Stripped WebSocket URL (removed all query params):', wsUrl);
+    }
     
-    // Properly add the key parameter
-    const separator = wsUrl.includes('?') ? '&' : '?';
-    const secureWsUrl = `${wsUrl}${separator}key=${apiKey}`;
+    // 2. Append the API key as the only query parameter
+    const secureWsUrl = `${wsUrl}?key=${apiKey}`;
     
     // Log secure URL structure (without showing full API key)
-    console.log(`Secure URL structure: ${wsUrl}${separator}key=XXXX...`);
+    console.log(`Final secure URL structure: ${wsUrl}?key=XXXX...`);
     
     // Return the secure URL with the API key
     res.status(200).json({ secureWsUrl });
