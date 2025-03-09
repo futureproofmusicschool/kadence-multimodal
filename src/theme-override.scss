@@ -278,4 +278,60 @@ body {
   .react-select__option:focus-within {
     background: var(--chat--color-primary) !important;
   }
+}
+
+/* Loading and Error States */
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  background: var(--chat--color-primary);
+  color: var(--chat--color-text);
+  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid var(--chat--color-secondary);
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-container h3 {
+  color: var(--chat--color-secondary);
+  margin-bottom: 10px;
+}
+
+.error-container p {
+  margin-bottom: 20px;
+  text-align: center;
+  max-width: 80%;
+}
+
+.error-container button {
+  background-color: var(--chat--color-secondary);
+  color: var(--chat--message--user--color);
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--chat--border-radius);
+  cursor: pointer;
+  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  transition: opacity 0.2s;
+}
+
+.error-container button:hover {
+  opacity: 0.9;
 } 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.scss";
 import "./theme-override.scss";
 import { LiveAPIProvider } from "./contexts/LiveAPIContext";
@@ -23,24 +23,82 @@ import { Kadence } from "./components/altair/Kadence";
 import ControlTray from "./components/control-tray/ControlTray";
 import cn from "classnames";
 
-const API_KEY = process.env.REACT_APP_GEMINI_API_KEY as string;
-if (typeof API_KEY !== "string") {
-  throw new Error("set REACT_APP_GEMINI_API_KEY in .env");
-}
+// No need to directly reference the API key here
+// const API_KEY = process.env.REACT_APP_GEMINI_API_KEY as string;
+// if (typeof API_KEY !== "string") {
+//   throw new Error("set REACT_APP_GEMINI_API_KEY in .env");
+// }
 
 const host = "generativelanguage.googleapis.com";
-const uri = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent`;
+const baseUri = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent`;
 
 function App() {
+  // State for the secure URI that includes the API key
+  const [secureUri, setSecureUri] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   // this video reference is used for displaying the active stream, whether that is the webcam or screen capture
   // feel free to style as you see fit
   const videoRef = useRef<HTMLVideoElement>(null);
   // either the screen capture, the video or null, if null we hide it
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
 
+  // Fetch the secure URI with the API key from our serverless function
+  useEffect(() => {
+    async function getSecureUri() {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/gemini-proxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ wsUrl: baseUri }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to get secure URI');
+        }
+        
+        const data = await response.json();
+        setSecureUri(data.secureWsUrl);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error getting secure URI:', error);
+        setError(error instanceof Error ? error.message : 'An unknown error occurred');
+        setIsLoading(false);
+      }
+    }
+    
+    getSecureUri();
+  }, []);
+
+  // Show loading state while getting the secure URI
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading Kadence AI...</p>
+      </div>
+    );
+  }
+
+  // Show error message if we couldn't get the secure URI
+  if (error || !secureUri) {
+    return (
+      <div className="error-container">
+        <h3>Could not initialize Kadence AI</h3>
+        <p>{error || 'Failed to secure connection. Please try again later.'}</p>
+        <button onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    );
+  }
+
   return (
     <div className="App">
-      <LiveAPIProvider url={uri} apiKey={API_KEY}>
+      <LiveAPIProvider url={secureUri} apiKey="">
         <div className="streaming-console">
           <SidePanel />
           <main>
