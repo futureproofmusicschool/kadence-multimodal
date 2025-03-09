@@ -15,9 +15,10 @@
  */
 
 export type UseMediaStreamResult = {
-  type: "webcam" | "screen";
+  type: "screen";
   start: () => Promise<MediaStream>;
   stop: () => void;
   isStreaming: boolean;
   stream: MediaStream | null;
+  hasSystemAudio?: boolean; // Optional property for screen capture streams with audio
 };

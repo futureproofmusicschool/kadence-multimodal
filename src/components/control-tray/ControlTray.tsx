@@ -20,7 +20,6 @@ import { memo, ReactNode, RefObject, useEffect, useRef, useState } from "react";
 import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
 import { UseMediaStreamResult } from "../../hooks/use-media-stream-mux";
 import { useScreenCapture } from "../../hooks/use-screen-capture";
-import { useWebcam } from "../../hooks/use-webcam";
 import { AudioRecorder } from "../../lib/audio-recorder";
 import AudioPulse from "../audio-pulse/AudioPulse";
 import "./control-tray.scss";
@@ -41,7 +40,7 @@ type MediaStreamButtonProps = {
 };
 
 /**
- * button used for triggering webcam or screen-capture
+ * button used for triggering screen-capture
  */
 const MediaStreamButton = memo(
   ({ isStreaming, onIcon, offIcon, start, stop }: MediaStreamButtonProps) =>
@@ -62,13 +61,13 @@ function ControlTray({
   onVideoStreamChange = () => {},
   supportsVideo,
 }: ControlTrayProps) {
-  const videoStreams = [useWebcam(), useScreenCapture()];
+  const screenCapture = useScreenCapture();
   const [activeVideoStream, setActiveVideoStream] =
     useState<MediaStream | null>(null);
-  const [webcam, screenCapture] = videoStreams;
   const [inVolume, setInVolume] = useState(0);
   const [audioRecorder] = useState(() => new AudioRecorder());
   const [muted, setMuted] = useState(false);
+  const [hasSystemAudio, setHasSystemAudio] = useState(false);
   const renderCanvasRef = useRef<HTMLCanvasElement>(null);
   const connectButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -142,18 +141,30 @@ function ControlTray({
     };
   }, [connected, activeVideoStream, client, videoRef]);
 
-  //handler for swapping from one video-stream to the next
-  const changeStreams = (next?: UseMediaStreamResult) => async () => {
-    if (next) {
-      const mediaStream = await next.start();
-      setActiveVideoStream(mediaStream);
-      onVideoStreamChange(mediaStream);
+  //handler for starting/stopping screen capture
+  const startScreenCapture = async () => {
+    const mediaStream = await screenCapture.start();
+    setActiveVideoStream(mediaStream);
+    onVideoStreamChange(mediaStream);
+    
+    // If the screen capture includes audio, add it to the audio recorder
+    if (screenCapture.hasSystemAudio) {
+      audioRecorder.addAudioSource(mediaStream);
+      setHasSystemAudio(true);
+      console.log('Connected screen audio to recorder');
     } else {
-      setActiveVideoStream(null);
-      onVideoStreamChange(null);
+      setHasSystemAudio(false);
     }
+  };
 
-    videoStreams.filter((msr) => msr !== next).forEach((msr) => msr.stop());
+  const stopScreenCapture = () => {
+    screenCapture.stop();
+    setActiveVideoStream(null);
+    onVideoStreamChange(null);
+    
+    // Remove additional audio source when stopping
+    audioRecorder.removeAdditionalAudioSource();
+    setHasSystemAudio(false);
   };
 
   return (
@@ -179,11 +190,17 @@ function ControlTray({
           <>
             <MediaStreamButton
               isStreaming={screenCapture.isStreaming}
-              start={changeStreams(screenCapture)}
-              stop={changeStreams()}
+              start={startScreenCapture}
+              stop={stopScreenCapture}
               onIcon="cancel_presentation"
               offIcon="present_to_all"
             />
+            {hasSystemAudio && screenCapture.isStreaming && (
+              <div className="system-audio-indicator">
+                <span className="material-symbols-outlined">volume_up</span>
+                <span className="system-audio-text">System Audio</span>
+              </div>
+            )}
           </>
         )}
         {children}

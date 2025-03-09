@@ -34,10 +34,30 @@ class AudioProcessingWorklet extends AudioWorkletProcessor {
    * @param outputs Float32Array[][]
    */
   process(inputs) {
-    if (inputs[0].length) {
+    // Check if we have any inputs
+    if (inputs.length === 0 || inputs[0].length === 0) {
+      return true;
+    }
+
+    // If we have multiple inputs (e.g., microphone + system audio), mix them
+    if (inputs.length > 1 && inputs[1].length > 0) {
+      const channel0 = inputs[0][0];
+      const channel1 = inputs[1][0];
+      const mixedAudio = new Float32Array(channel0.length);
+      
+      // Mix the two sources with reduced gain to avoid clipping
+      for (let i = 0; i < channel0.length; i++) {
+        // Apply a 0.7 gain factor to each source to avoid clipping
+        mixedAudio[i] = (channel0[i] * 0.7) + (channel1[i] * 0.7);
+      }
+      
+      this.processChunk(mixedAudio);
+    } else {
+      // Process single input normally
       const channel0 = inputs[0][0];
       this.processChunk(channel0);
     }
+    
     return true;
   }
 

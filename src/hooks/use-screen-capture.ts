@@ -20,11 +20,13 @@ import { UseMediaStreamResult } from "./use-media-stream-mux";
 export function useScreenCapture(): UseMediaStreamResult {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [hasSystemAudio, setHasSystemAudio] = useState(false);
 
   useEffect(() => {
     const handleStreamEnded = () => {
       setIsStreaming(false);
       setStream(null);
+      setHasSystemAudio(false);
     };
     if (stream) {
       stream
@@ -41,15 +43,32 @@ export function useScreenCapture(): UseMediaStreamResult {
   }, [stream]);
 
   const start = async () => {
-    // const controller = new CaptureController();
-    // controller.setFocusBehavior("no-focus-change");
-    const mediaStream = await navigator.mediaDevices.getDisplayMedia({
-      video: true,
-      // controller
-    });
-    setStream(mediaStream);
-    setIsStreaming(true);
-    return mediaStream;
+    try {
+      // const controller = new CaptureController();
+      // controller.setFocusBehavior("no-focus-change");
+      const mediaStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true, // Request system audio when sharing screen
+        // controller
+      });
+      
+      // Check if system audio was captured
+      const hasAudio = mediaStream.getAudioTracks().length > 0;
+      setHasSystemAudio(hasAudio);
+      
+      if (!hasAudio) {
+        console.log('System audio capture was not supported or not allowed by the user');
+      } else {
+        console.log('System audio capture is active');
+      }
+      
+      setStream(mediaStream);
+      setIsStreaming(true);
+      return mediaStream;
+    } catch (error) {
+      console.error('Error starting screen capture:', error);
+      throw error;
+    }
   };
 
   const stop = () => {
@@ -57,6 +76,7 @@ export function useScreenCapture(): UseMediaStreamResult {
       stream.getTracks().forEach((track) => track.stop());
       setStream(null);
       setIsStreaming(false);
+      setHasSystemAudio(false);
     }
   };
 
@@ -66,6 +86,7 @@ export function useScreenCapture(): UseMediaStreamResult {
     stop,
     isStreaming,
     stream,
+    hasSystemAudio,
   };
 
   return result;

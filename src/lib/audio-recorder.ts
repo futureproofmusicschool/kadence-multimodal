@@ -35,6 +35,7 @@ export class AudioRecorder extends EventEmitter {
   stream: MediaStream | undefined;
   audioContext: AudioContext | undefined;
   source: MediaStreamAudioSourceNode | undefined;
+  additionalSource: MediaStreamAudioSourceNode | undefined;
   recording: boolean = false;
   recordingWorklet: AudioWorkletNode | undefined;
   vuWorklet: AudioWorkletNode | undefined;
@@ -92,15 +93,58 @@ export class AudioRecorder extends EventEmitter {
     });
   }
 
+  /**
+   * Connects an additional audio source (like system audio from screen sharing)
+   * to the recorder worklets
+   * @param stream MediaStream containing the audio track
+   */
+  addAudioSource(stream: MediaStream) {
+    if (!this.audioContext || !this.recordingWorklet || !this.vuWorklet) {
+      console.warn("AudioRecorder not initialized, can't add audio source");
+      return;
+    }
+
+    // Check if the stream has audio tracks
+    const audioTracks = stream.getAudioTracks();
+    if (audioTracks.length === 0) {
+      console.warn("No audio tracks found in the provided stream");
+      return;
+    }
+
+    // Disconnect existing additional source if any
+    if (this.additionalSource) {
+      this.additionalSource.disconnect();
+    }
+
+    // Create a new source from the stream
+    this.additionalSource = this.audioContext.createMediaStreamSource(stream);
+    
+    // Connect to the worklets
+    this.additionalSource.connect(this.recordingWorklet);
+    this.additionalSource.connect(this.vuWorklet);
+  }
+
+  /**
+   * Disconnects additional audio source if exists
+   */
+  removeAdditionalAudioSource() {
+    if (this.additionalSource) {
+      this.additionalSource.disconnect();
+      this.additionalSource = undefined;
+    }
+  }
+
   stop() {
     // its plausible that stop would be called before start completes
     // such as if the websocket immediately hangs up
     const handleStop = () => {
       this.source?.disconnect();
+      this.additionalSource?.disconnect();
       this.stream?.getTracks().forEach((track) => track.stop());
       this.stream = undefined;
       this.recordingWorklet = undefined;
       this.vuWorklet = undefined;
+      this.additionalSource = undefined;
     };
     if (this.starting) {
       this.starting.then(handleStop);
