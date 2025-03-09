@@ -184,13 +184,6 @@ function ControlTray({
               onIcon="cancel_presentation"
               offIcon="present_to_all"
             />
-            <MediaStreamButton
-              isStreaming={webcam.isStreaming}
-              start={changeStreams(webcam)}
-              stop={changeStreams()}
-              onIcon="videocam_off"
-              offIcon="videocam"
-            />
           </>
         )}
         {children}
