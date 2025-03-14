@@ -59,6 +59,7 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
             Do not mention their name again in the conversation.
             
             Notes on Pronounciation:
+            
             Words should always be pronounced according to their common usage in a musical context.
             The word bass is always pronounced like base.`,
           },
