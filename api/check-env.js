@@ -4,7 +4,7 @@
  */
 export default async function handler(req, res) {
   try {
-    const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     
     res.status(200).json({
       hasApiKey: !!apiKey,

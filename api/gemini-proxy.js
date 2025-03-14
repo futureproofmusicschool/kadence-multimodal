@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     console.log('API proxy received request:', req.body);
     
     // Get the API key from environment variables
-    let apiKey = process.env.REACT_APP_GEMINI_API_KEY || '';
+    let apiKey = process.env.GEMINI_API_KEY || '';
     
     // Log API key length but not the actual key for security
     console.log(`API key length: ${apiKey.length}, first 4 chars: ${apiKey.substring(0, 4)}...`);
