@@ -1,0 +1,26 @@
+<!-- COPY AND PASTE THIS ENTIRE BLOCK INTO LEARNWORLDS CUSTOM CODE ELEMENT -->
+
+<!-- First, add the image that will activate Kadence (change the src to your own image URL) -->
+<img id="kadence-trigger-image" src="YOUR_IMAGE_URL_HERE" alt="Click to activate Kadence" style="cursor: pointer; max-width: 100%;">
+
+<!-- Next, add the Kadence scripts -->
+<script src="https://kadence-multimodal.vercel.app/embed/kadence-inline.js"></script>
+
+<!-- Finally, initialize Kadence on your image -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Wait a moment to ensure the scripts are loaded and the image is rendered
+    setTimeout(function() {
+      if (window.initKadenceOnElement) {
+        // Attach Kadence to the image
+        window.initKadenceOnElement('#kadence-trigger-image', {
+          statusPosition: 'overlay',  // Options: 'overlay', 'after', 'before'
+          statusStyle: 'pulse'        // Options: 'pulse', 'dot', 'indicator'
+        });
+      } else {
+        console.error('Kadence script not loaded correctly');
+      }
+    }, 1000);
+  });
+</script>
+<!-- END OF BLOCK --> 
