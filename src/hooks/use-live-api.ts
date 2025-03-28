@@ -46,7 +46,6 @@ export function useLiveAPI({
 
   const [connected, setConnected] = useState(false);
   const [config, setConfig] = useState<LiveConfig>({
-    contents: [],
     model: "models/gemini-2.0-flash",
     generationConfig: {
       topP: 0.95,
