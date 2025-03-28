@@ -112,6 +112,22 @@
     background-color: var(--Blue-500);
     color: var(--Neutral-5);
   }
+  
+  &.connecting {
+    background-color: var(--Neutral-40);
+    color: var(--Neutral-5);
+    pointer-events: none;
+    animation: spin 2s infinite linear;
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .control-tray {
