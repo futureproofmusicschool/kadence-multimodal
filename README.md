@@ -14,7 +14,6 @@ To get started, [create a free Gemini API key](https://aistudio.google.com/apike
 $ npm install && npm start
 ```
 
-
 We have provided several example applications on other branches of this repository:
 
 - [demos/GenExplainer](https://github.com/google-gemini/multimodal-live-api-web-console/tree/demos/genexplainer)
