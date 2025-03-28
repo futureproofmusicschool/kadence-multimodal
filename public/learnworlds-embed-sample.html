@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kadence Voice Assistant - Learnworlds Embed Sample</title>
+</head>
+<body>
+  <h1>Kadence Voice Assistant Demo</h1>
+  <p>This is a sample page showing how to embed the Kadence Voice Assistant in Learnworlds.</p>
+  
+  <!-- The Kadence button will appear in the bottom right corner automatically -->
+  
+  <!-- Add this code to your Learnworlds page -->
+  <script>
+    // Configure your variables - LearnWorlds variables will be filled automatically in production
+    window.chatbotConfig = {
+      username: "Student Name", // This will be replaced with {{USER.NAME}} in Learnworlds
+      userId: "user123",        // This will be replaced with {{USER.ID}} in Learnworlds
+      currentUrl: window.location.href,
+      currentPath: window.location.pathname
+    };
+  </script>
+  <script src="kadence-voice.js"></script>
+  
+  <!-- When embedding in Learnworlds, use this code: -->
+  <!--
+  <script>
+    window.chatbotConfig = {
+      username: "{{USER.NAME}}",
+      userId: "{{USER.ID}}",
+      currentUrl: window.location.href,
+      currentPath: window.location.pathname
+    };
+  </script>
+  <script src="https://kadence-multimodal.vercel.app/kadence-voice.js"></script>
+  -->
+</body>
+</html> 
