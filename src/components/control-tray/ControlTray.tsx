@@ -70,7 +70,6 @@ function ControlTray({
   const [audioRecorder] = useState(() => new AudioRecorder());
   const [muted, setMuted] = useState(false);
   const [hasSystemAudio, setHasSystemAudio] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
   const renderCanvasRef = useRef<HTMLCanvasElement>(null);
   const connectButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -185,22 +184,6 @@ function ControlTray({
     setSystemVolume(0);
   };
 
-  // Update the connection button handler to show loading state
-  const handleConnection = async () => {
-    if (connected) {
-      disconnect();
-    } else {
-      setIsConnecting(true);
-      try {
-        await connect();
-      } catch (error) {
-        console.error('Error connecting:', error);
-      } finally {
-        setIsConnecting(false);
-      }
-    }
-  };
-
   return (
     <section className="control-tray">
       <canvas style={{ display: "none" }} ref={renderCanvasRef} />
@@ -250,22 +233,15 @@ function ControlTray({
         <div className="connection-button-container">
           <button
             ref={connectButtonRef}
-            className={cn("action-button connect-toggle", { connected, "connecting": isConnecting })}
-            onClick={handleConnection}
-            disabled={isConnecting}
+            className={cn("action-button connect-toggle", { connected })}
+            onClick={connected ? disconnect : connect}
           >
-            {isConnecting ? (
-              <span className="material-symbols-outlined filled">hourglass_empty</span>
-            ) : (
-              <span className="material-symbols-outlined filled">
-                {connected ? "pause" : "play_arrow"}
-              </span>
-            )}
+            <span className="material-symbols-outlined filled">
+              {connected ? "pause" : "play_arrow"}
+            </span>
           </button>
         </div>
-        <span className="text-indicator">
-          {isConnecting ? "Connecting..." : (connected ? "Streaming" : "")}
-        </span>
+        <span className="text-indicator">Streaming</span>
       </div>
     </section>
   );
