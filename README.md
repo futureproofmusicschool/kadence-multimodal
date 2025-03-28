@@ -21,6 +21,49 @@ We have provided several example applications on other branches of this reposito
 - [demos/GenWeather](https://github.com/google-gemini/multimodal-live-api-web-console/tree/demos/genweather)
 - [demos/GenList](https://github.com/google-gemini/multimodal-live-api-web-console/tree/demos/genlist)
 
+## Embedding in Learnworlds
+
+This repository includes a floating button component that can be embedded in Learnworlds or other platforms. This provides an easy way for users to start an audio chat session with Kadence.
+
+### Method 1: Using the JavaScript snippet
+
+To add the Kadence button to your Learnworlds site, add the following code to your site's HTML/JavaScript section:
+
+```html
+<!-- Kadence AI Assistant Button -->
+<script>
+window.chatbotConfig = {
+  username: "{{USER.NAME}}",
+  userId: "{{USER.ID}}",
+  currentUrl: window.location.href,
+  currentPath: window.location.pathname
+};
+</script>
+<script src="https://your-kadence-app-url.com/kadence-button.js"></script>
+```
+
+Make sure to replace `https://your-kadence-app-url.com` with your actual deployed application URL.
+
+### Method 2: Using an iframe
+
+You can also embed the Kadence assistant using an iframe:
+
+```html
+<iframe 
+  src="https://your-kadence-app-url.com?embedded=true&username={{USER.NAME}}" 
+  style="width: 100%; height: 500px; border: none;"
+></iframe>
+```
+
+### Customization
+
+The button appearance can be customized by modifying the `kadence-button.js` file. You can change:
+
+- Button colors
+- Position on the screen
+- Size and appearance
+- Text and icons
+
 ## Example
 
 Below is an example of an entire application that will use Google Search grounding and then render graphs using [vega-embed](https://github.com/vega/vega-embed):
@@ -124,4 +167,4 @@ Your app is ready to be deployed!
 
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-_This is an experiment showcasing the Multimodal Live API, not an official Google product. We’ll do our best to support and maintain this experiment but your mileage may vary. We encourage open sourcing projects as a way of learning from each other. Please respect our and other creators' rights, including copyright and trademark rights when present, when sharing these works and creating derivative work. If you want more info on Google's policy, you can find that [here](https://developers.google.com/terms/site-policies)._
+_This is an experiment showcasing the Multimodal Live API, not an official Google product. We'll do our best to support and maintain this experiment but your mileage may vary. We encourage open sourcing projects as a way of learning from each other. Please respect our and other creators' rights, including copyright and trademark rights when present, when sharing these works and creating derivative work. If you want more info on Google's policy, you can find that [here](https://developers.google.com/terms/site-policies)._

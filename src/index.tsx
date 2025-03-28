@@ -18,14 +18,21 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import EmbeddedApp from './EmbeddedApp';
 import reportWebVitals from './reportWebVitals';
+
+// Check if we should render the embedded version
+const urlParams = new URLSearchParams(window.location.search);
+const isEmbedded = urlParams.get('embedded') === 'true';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
+
+// Render appropriate app based on the embedded parameter
 root.render(
   <React.StrictMode>
-    <App />
+    {isEmbedded ? <EmbeddedApp /> : <App />}
   </React.StrictMode>
 );
 
