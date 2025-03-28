@@ -21,22 +21,9 @@ interface KadenceProps {
 }
 
 function KadenceComponent({ username = 'student' }: KadenceProps) {
-  const { client, setConfig } = useLiveAPIContext();
+  const { client, setConfig, connect, connected } = useLiveAPIContext();
 
-  // Set up initial greeting message based on username
-  useEffect(() => {
-    // Short delay to make it seem more natural
-    const timer = setTimeout(() => {
-      if (client && username) {
-        client.send([{ 
-          text: `Hi ${username}, how's it going with your music today? I'm Kadence, your AI music tutor. I can help you with production techniques, creative direction, or any other music-related questions.` 
-        }]);
-      }
-    }, 1500);
-    
-    return () => clearTimeout(timer);
-  }, [client, username]);
-
+  // First configure the client
   useEffect(() => {
     setConfig({
       model: "models/gemini-2.0-flash-exp",
@@ -71,6 +58,34 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
       ],
     });
   }, [setConfig, username]);
+  
+  // Then connect to the WebSocket
+  useEffect(() => {
+    // Connect to the API
+    connect().catch(err => {
+      console.error("Failed to connect to the WebSocket:", err);
+    });
+  }, [connect]);
+
+  // Only send message after connected
+  useEffect(() => {
+    if (!connected) return; // Don't proceed if not connected
+    
+    // Short delay to make it seem more natural
+    const timer = setTimeout(() => {
+      if (client && username) {
+        try {
+          client.send([{ 
+            text: `Hi ${username}, how's it going with your music today? I'm Kadence, your AI music tutor. I can help you with production techniques, creative direction, or any other music-related questions.` 
+          }]);
+        } catch (err) {
+          console.error("Error sending initial message:", err);
+        }
+      }
+    }, 1500);
+    
+    return () => clearTimeout(timer);
+  }, [client, username, connected]);
   
   // This component doesn't need to render anything visible
   return null;
