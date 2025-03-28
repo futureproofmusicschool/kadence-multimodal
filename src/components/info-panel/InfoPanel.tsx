@@ -46,9 +46,9 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ username = 'student' }) => {
         <h2>Kadence Live<span className="early-access">Early Access</span></h2>
         
         <p className="description">
-          Use this interface to make an audio call with Kadence and get live real-time advice on your tracks and projects.
-          Kadence cannot listen to your music or see your screen during a voice call, but you can ask production questions, troubleshoot your setup, brainstorm new ideas, or whatever you need.
-          <br></br>Click play to begin, give the app microphone access when prompted, and you can begin talking to Kadence via voice.
+          Use this interface to make an audio call with Kadence.
+          
+          <br></br>Click play to begin, give the app microphone access when prompted, and you can begin talking.
         </p>
         <p className="note">
           <strong>Note:</strong> this version of Kadence is still experimental and there is a 15-minute limit for audio sessions.
