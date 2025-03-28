@@ -44,6 +44,17 @@
       border: 1px solid var(--Blue-500);
     }
   }
+  
+  &.disabled-button {
+    opacity: 0.5;
+    cursor: not-allowed;
+    position: relative;
+    
+    &:hover {
+      background: var(--Neutral-20);
+      border: 1px solid rgba(0, 0, 0, 0);
+    }
+  }
 }
 
 @property --volume {
