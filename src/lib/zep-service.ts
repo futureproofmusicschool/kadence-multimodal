@@ -42,6 +42,13 @@ export class ZepService {
    */
   async getUserContext(username: string): Promise<string> {
     try {
+      console.log(`[Zep Service] Fetching context for user: "${username}"`);
+      
+      if (!username || username === 'student' || username === 'undefined') {
+        console.warn(`[Zep Service] Invalid username "${username}". Skipping context fetch.`);
+        return '';
+      }
+      
       // Call our server-side proxy to avoid exposing API key in client
       const response = await fetch('/api/zep-context', {
         method: 'POST',
@@ -51,17 +58,27 @@ export class ZepService {
         body: JSON.stringify({ username }),
       });
       
+      console.log(`[Zep Service] Response status: ${response.status}`);
+      
       if (!response.ok) {
-        console.error('Failed to fetch user context from Zep:', response.statusText);
+        const errorText = await response.text();
+        console.error(`[Zep Service] Failed to fetch user context: ${response.status} - ${errorText}`);
         return '';
       }
       
       const data = await response.json();
+      console.log(`[Zep Service] Retrieved data:`, {
+        hasSummary: !!data.summary,
+        messageCount: data.messages?.length || 0,
+        hasMetadata: !!data.metadata
+      });
       
       // Format the context for use in the system prompt
-      return this.formatUserContext(data);
+      const formattedContext = this.formatUserContext(data);
+      console.log(`[Zep Service] Formatted context length: ${formattedContext.length} chars`);
+      return formattedContext;
     } catch (error) {
-      console.error('Error fetching user context:', error);
+      console.error(`[Zep Service] Error fetching user context:`, error);
       return '';
     }
   }
@@ -70,13 +87,17 @@ export class ZepService {
    * Format Zep memory data into a cohesive context string
    */
   private formatUserContext(memory: ZepMemory): string {
-    if (!memory) return '';
+    if (!memory) {
+      console.log(`[Zep Service] Empty memory object received.`);
+      return '';
+    }
     
     let context = '';
     
     // Add summary if available
     if (memory.summary) {
       context += `User Summary: ${memory.summary}\n\n`;
+      console.log(`[Zep Service] Added summary to context.`);
     }
     
     // Add relevant messages if available (limiting to last 5 for brevity)
@@ -84,6 +105,8 @@ export class ZepService {
       context += 'Recent Conversation History:\n';
       
       const recentMessages = memory.messages.slice(-5);
+      console.log(`[Zep Service] Adding ${recentMessages.length} recent messages to context.`);
+      
       recentMessages.forEach(msg => {
         context += `${msg.role}: ${msg.content}\n`;
       });
@@ -94,6 +117,10 @@ export class ZepService {
       context += '\nUser Metadata:\n';
       
       const importantKeys = ['experience_level', 'preferred_genre', 'daw', 'goals'];
+      const foundKeys = importantKeys.filter(key => memory.metadata && memory.metadata[key]);
+      
+      console.log(`[Zep Service] Adding ${foundKeys.length} metadata fields to context.`);
+      
       importantKeys.forEach(key => {
         if (memory.metadata && memory.metadata[key]) {
           context += `${key}: ${memory.metadata[key]}\n`;

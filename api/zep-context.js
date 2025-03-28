@@ -13,19 +13,34 @@ export default async function handler(req, res) {
     const { username } = req.body;
     
     if (!username) {
+      console.log('[ZEP API] No username provided');
       return res.status(400).json({ error: 'Username is required' });
     }
+    
+    console.log(`[ZEP API] Fetching context for user: ${username}`);
     
     // Get API key from environment variable
     const ZEP_API_KEY = process.env.ZEP_API_KEY;
     
     if (!ZEP_API_KEY) {
-      console.error('ZEP_API_KEY environment variable is not set');
+      console.error('[ZEP API] ZEP_API_KEY environment variable is not set');
       return res.status(500).json({ error: 'Server configuration error' });
     }
     
+    // Construct the API URL
+    // The correct URL format based on Zep docs: https://help.getzep.com/sdk-reference/python#zep_python.collections.get_memory
+    const collectionName = process.env.ZEP_COLLECTION_NAME || 'users';
+    const apiUrl = `https://api.getzep.com/api/v1/collection/${collectionName}/memory/${encodeURIComponent(username)}`;
+    
+    console.log(`[ZEP API] Request details:
+    - Collection: ${collectionName}
+    - Username: ${username}
+    - Full URL: ${apiUrl}
+    - API Key Present: ${!!ZEP_API_KEY}
+    `);
+    
     // Fetch user memory from Zep Cloud
-    const response = await fetch(`https://api.getzep.com/api/v1/collection/users/memory/${username}`, {
+    const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -33,12 +48,16 @@ export default async function handler(req, res) {
       }
     });
     
+    console.log(`[ZEP API] Response status: ${response.status}`);
+    
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Zep API error: ${response.status} - ${errorText}`);
+      console.error(`[ZEP API] Error: ${response.status} - ${errorText}`);
+      console.error(`[ZEP API] Full request info: URL=${apiUrl}, Username=${username}, Headers=${JSON.stringify(response.headers)}`);
       
       // If user not found, return empty context rather than error
       if (response.status === 404) {
+        console.log(`[ZEP API] User not found in Zep memory collection. Creating empty context.`);
         return res.status(200).json({ summary: '', messages: [] });
       }
       
@@ -48,10 +67,11 @@ export default async function handler(req, res) {
     }
     
     const data = await response.json();
+    console.log(`[ZEP API] Successfully retrieved context for ${username} with ${data.messages?.length || 0} messages`);
     return res.status(200).json(data);
     
   } catch (error) {
-    console.error('Error in zep-context API:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error(`[ZEP API] Unhandled error: ${error.message}`, error);
+    return res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 } 
