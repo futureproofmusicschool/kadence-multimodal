@@ -46,18 +46,17 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ username = 'student' }) => {
         <h2>Kadence Live<span className="early-access">Early Access</span></h2>
         
         <p className="description">
-          Use this interface to share your screen with Kadence and get live realtime advice on your tracks and projects.
+          Use this interface to make an audio call with Kadence and get live real-time advice on your tracks and projects.
           <br /><br />
-          This version of Kadence cannot listen to your music directly, but you can share your screen and talk with it about what you're doing in your DAW or other audio software, getting advice on how to mix your project, arrange your track, or just troubleshoot software issues.
+          This version of Kadence cannot listen to your music or see your screen, but you can ask it questions about audio software, advice on how to mix your project, arrange your track, or just troubleshoot software issues.
         </p>
         
         <div className="instructions">
-          <p><strong>1.</strong> Click play to begin and give the app microphone access when prompted.</p>
-          <p><strong>2.</strong> Click share to share your screen, and you can begin talking to Kadence (via voice).</p>
+          <p><strong>1.</strong> Click play to begin, give the app microphone access when prompted, and you can begin talking to Kadence via voice.</p>
         </div>
         
         <p className="note">
-          <strong>Note:</strong> this version of Kadence is still experimental and there is a 15-minute limit for screensharing + audio sessions.
+          <strong>Note:</strong> this version of Kadence is still experimental and there is a 15-minute limit for audio sessions.
         </p>
       </div>
     </div>
