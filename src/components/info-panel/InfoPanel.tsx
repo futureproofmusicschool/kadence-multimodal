@@ -46,12 +46,11 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ username = 'student' }) => {
         <h2>Kadence Live<span className="early-access">Early Access</span></h2>
         
         <p className="description">
-          Use this interface to make an audio call with Kadence.
-          
-          <br></br>Click play to begin, give the app microphone access when prompted, and you can begin talking.
+          Use this interface to make an audio call with Kadence. <br></br>
+          Click the play button to start.
         </p>
         <p className="note">
-          <strong>Note:</strong> this version of Kadence is still experimental and there is a 15-minute limit for audio sessions.
+          <strong>Note:</strong> there is a 15-minute limit for audio sessions.
         </p>
       </div>
     </div>
