@@ -78,9 +78,23 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
     url =
       url ||
       `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent`;
-    url += `?key=${apiKey}`;
+    
+    // Only append the API key if:
+    // 1. The URL doesn't already have a key parameter
+    // 2. The provided API key is not empty
+    if (apiKey && apiKey.trim() !== '' && !url.includes('key=')) {
+      url += `?key=${apiKey}`;
+    }
+    
     this.url = url;
     this.send = this.send.bind(this);
+    
+    // Log the URL structure (without exposing the full key)
+    console.log('WebSocket URL structure:', 
+      url.includes('key=') 
+        ? url.substring(0, url.indexOf('key=') + 7) + '***' 
+        : url + ' (no key)'
+    );
   }
 
   log(type: string, message: StreamingLog["message"]) {

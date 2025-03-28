@@ -29,9 +29,14 @@ const filterOptions = [
   { value: "none", label: "All" },
 ];
 
-export default function SidePanel() {
+// Add types for the component props
+interface SidePanelProps {
+  username?: string;
+}
+
+export default function SidePanel({ username = 'student' }: SidePanelProps) {
   const { connected, client } = useLiveAPIContext();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const loggerRef = useRef<HTMLDivElement>(null);
   const loggerLastHeightRef = useRef<number>(-1);
   const { log, logs } = useLoggerStore();

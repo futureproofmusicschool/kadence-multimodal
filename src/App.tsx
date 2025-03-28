@@ -14,38 +14,123 @@
  * limitations under the License.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.scss";
+import "./theme-override.scss";
 import { LiveAPIProvider } from "./contexts/LiveAPIContext";
 import SidePanel from "./components/side-panel/SidePanel";
-import { Altair } from "./components/altair/Altair";
+import { Kadence } from "./components/kadence/Kadence";
 import ControlTray from "./components/control-tray/ControlTray";
+import InfoPanel from "./components/info-panel/InfoPanel";
 import cn from "classnames";
 
-const API_KEY = process.env.REACT_APP_GEMINI_API_KEY as string;
-if (typeof API_KEY !== "string") {
-  throw new Error("set REACT_APP_GEMINI_API_KEY in .env");
+// Generate a base WebSocket URL without the API key
+const host = "generativelanguage.googleapis.com";
+const baseUri = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent`;
+
+// Function to get username from URL parameters
+function getUsernameFromUrl() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const username = urlParams.get('username');
+  return username || 'student'; // Default to 'student' if no username is provided
 }
 
-const host = "generativelanguage.googleapis.com";
-const uri = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent`;
-
 function App() {
+  // State for the secure URI that includes the API key
+  const [secureUri, setSecureUri] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [username, setUsername] = useState<string>('');
+  
   // this video reference is used for displaying the active stream, whether that is the webcam or screen capture
   // feel free to style as you see fit
   const videoRef = useRef<HTMLVideoElement>(null);
   // either the screen capture, the video or null, if null we hide it
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
 
+  // Get username when component mounts
+  useEffect(() => {
+    const name = getUsernameFromUrl();
+    setUsername(name);
+    console.log("Username from URL:", name);
+  }, []);
+
+  // Fetch the secure URI with the API key from our serverless function
+  useEffect(() => {
+    async function getSecureUri() {
+      try {
+        setIsLoading(true);
+        console.log("Requesting secure WebSocket URL for:", baseUri);
+        
+        const response = await fetch('/api/gemini-proxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ wsUrl: baseUri }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to get secure URI');
+        }
+        
+        const data = await response.json();
+        console.log("Received secure WebSocket URL (partial):", 
+          data.secureWsUrl.substring(0, data.secureWsUrl.indexOf('key=') + 7) + '***');
+        
+        // Make sure we have a valid URL structure
+        if (!data.secureWsUrl || !data.secureWsUrl.startsWith('wss://')) {
+          throw new Error('Invalid WebSocket URL received from server');
+        }
+        
+        setSecureUri(data.secureWsUrl);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error getting secure URI:', error);
+        setError(error instanceof Error ? error.message : 'An unknown error occurred');
+        setIsLoading(false);
+      }
+    }
+    
+    getSecureUri();
+  }, []);
+
+  // Show loading state while getting the secure URI
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading Kadence AI for {username || 'you'}...</p>
+      </div>
+    );
+  }
+
+  // Show error message if we couldn't get the secure URI
+  if (error || !secureUri) {
+    return (
+      <div className="error-container">
+        <h3>Could not initialize Kadence AI</h3>
+        <p>{error || 'Failed to secure connection. Please try again later.'}</p>
+        <button onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    );
+  }
+
   return (
     <div className="App">
-      <LiveAPIProvider url={uri} apiKey={API_KEY}>
+      {/* Important: Pass an empty string as the apiKey, since it's already in the secureUri */}
+      <LiveAPIProvider url={secureUri} apiKey="">
         <div className="streaming-console">
-          <SidePanel />
+          <SidePanel username={username} />
           <main>
             <div className="main-app-area">
-              {/* APP goes here */}
-              <Altair />
+              {/* Pass username to Kadence component */}
+              <Kadence username={username} />
+              
+              {/* Add the info panel */}
+              <InfoPanel username={username} />
+              
               <video
                 className={cn("stream", {
                   hidden: !videoRef.current || !videoStream,

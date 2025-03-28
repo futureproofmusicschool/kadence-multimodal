@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kadence Image Activation Example</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #1a73e8;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    h2 {
+      margin-top: 30px;
+      color: #333;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      font-size: 14px;
+    }
+    code {
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .example-container {
+      border: 1px solid #ddd;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 5px;
+      text-align: center;
+    }
+    .note {
+      background-color: #fffde7;
+      border-left: 4px solid #ffd600;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 0 5px 5px 0;
+    }
+    #kadence-image {
+      max-width: 300px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Adding Kadence Voice to an Existing Image</h1>
+  
+  <p>This example shows how to attach Kadence voice functionality to an existing image on your LearnWorlds page. When users click the image, the voice assistant will activate.</p>
+  
+  <div class="example-container">
+    <h3>Live Example:</h3>
+    <p>Click the Kadence logo below to start the voice assistant:</p>
+    
+    <!-- This is the image that will activate Kadence when clicked -->
+    <img id="kadence-image" src="https://placehold.co/300x200/1a73e8/ffffff?text=Kadence+AI" alt="Kadence AI">
+    
+    <p><small>The red pulse overlay will appear when active.</small></p>
+  </div>
+  
+  <h2>How to Implement in LearnWorlds</h2>
+  
+  <p>To add this functionality to an image in your LearnWorlds site, follow these steps:</p>
+  
+  <h3>Step 1: Add the Script</h3>
+  <p>Add this code to your LearnWorlds page using the Custom Code element:</p>
+  <pre><code>&lt;!-- Load the required scripts --&gt;
+&lt;script src="https://kadence-multimodal.vercel.app/embed/kadence-inline.js"&gt;&lt;/script&gt;</code></pre>
+  
+  <h3>Step 2: Initialize on Your Image</h3>
+  <p>Add this code after your image (replace <code>yourImageId</code> with the ID of your image):</p>
+  <pre><code>&lt;script&gt;
+// Initialize Kadence on your image 
+// You can use any selector (ID, class, etc.)
+document.addEventListener('DOMContentLoaded', function() {
+  window.initKadenceOnElement('#yourImageId', {
+    statusPosition: 'overlay', // 'overlay', 'after', 'before'
+    statusStyle: 'pulse'       // 'pulse', 'dot', 'indicator'
+  });
+});
+&lt;/script&gt;</code></pre>
+  
+  <h3>Step 3: Add an ID to Your Image</h3>
+  <p>Make sure your image has an ID attribute that matches the selector used above:</p>
+  <pre><code>&lt;img id="yourImageId" src="your-image-url.jpg" alt="Click to talk to Kadence"&gt;</code></pre>
+  
+  <div class="note">
+    <h3>Important:</h3>
+    <ul>
+      <li>You can use this approach with any element, not just images (buttons, divs, etc.)</li>
+      <li>The overlay option works best with images that have a good amount of space</li>
+      <li>You can customize the visual indicator style using the options</li>
+      <li>The microphone permissions prompt will appear when the user first clicks the image</li>
+    </ul>
+  </div>
+  
+  <h2>Customization Options</h2>
+  <p>The <code>initKadenceOnElement</code> function accepts these options:</p>
+  <pre><code>window.initKadenceOnElement('#elementSelector', {
+  // Where to place the status indicator
+  statusPosition: 'overlay',  // 'overlay', 'after', 'before'
+  
+  // Style of the status indicator
+  statusStyle: 'pulse',       // 'pulse', 'dot', 'indicator'
+  
+  // Start automatically without waiting for click
+  autoStart: false            // true, false
+});</code></pre>
+
+  <!-- Load the Kadence scripts and initialize on the image -->
+  <script src="kadence-inline.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (window.initKadenceOnElement) {
+        window.initKadenceOnElement('#kadence-image', {
+          statusPosition: 'overlay',
+          statusStyle: 'pulse'
+        });
+      }
+    });
+  </script>
+</body>
+</html> 

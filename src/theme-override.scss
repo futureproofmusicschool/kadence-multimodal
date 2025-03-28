@@ -1,0 +1,337 @@
+/* Font loading */
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap');
+
+@font-face {
+  font-family: 'Source Sans Pro';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/sourcesanspro/v22/6xK3dSBYKcSV-LCoeQqfX1RYOo3qOK7l.woff2) format('woff2');
+}
+
+@font-face {
+  font-family: 'Source Sans Pro';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/sourcesanspro/v22/6xKydSBYKcSV-LCoeQqfX1RYOo3i54rwlxdu.woff2) format('woff2');
+}
+
+:root {
+  --chat--color-primary: rgba(0, 0, 0, 0.95);
+  --chat--color-secondary: #A373F8;
+  --chat--color-white: rgba(0, 0, 0, 0.95);
+  --chat--color-light: rgba(0, 0, 0, 0.95);
+  --chat--color-dark: rgba(0, 0, 0, 0.95);
+  --chat--color-text: #e0e0e0;
+  --chat--window--width: 18vw;
+  --chat--window--height: 75vh;   
+  --chat--border-radius: 12px;
+  --chat--toggle--size: 64px;
+  --chat--message--bot--background: rgba(42, 42, 42, 0.95);
+  --chat--message--bot--color: #e0e0e0;
+  --chat--message--user--background: #A373F8;
+  --chat--message--user--color: #ffffff;
+  --chat--textarea-background: rgba(42, 42, 42, 0.98);
+  --chat--textarea-color: #ffffff;
+  --chat--window--width-expanded: 65vw;
+  --chat--window--height-expanded: 75vh;
+  --chat--font-size-base: 0.75rem;
+  --chat--font-size-large: 1.0rem;
+  --chat--font-size-small: 0.675rem;
+  
+  /* Override the existing variables */
+  --text: var(--chat--color-text);
+  --gray-200: var(--chat--color-text);
+  --gray-300: var(--chat--color-text);
+  --gray-500: var(--chat--color-text);
+  --gray-600: rgba(51, 51, 51, 0.8);
+  --gray-700: var(--chat--message--bot--background);
+  --gray-800: var(--chat--color-primary);
+  --gray-900: var(--chat--color-primary);
+  --gray-1000: var(--chat--color-primary);
+  --border-stroke: rgba(51, 51, 51, 0.8);
+  --accent-blue: var(--chat--color-secondary);
+  --accent-blue-active-bg: var(--chat--color-primary);
+  --accent-blue-active: var(--chat--color-secondary);
+  --accent-blue-headers: var(--chat--color-secondary);
+  
+  --background: var(--chat--color-primary);
+  --color: var(--chat--color-text);
+  
+  --font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  /* Neutral colors for controls */
+  --Neutral-00: var(--chat--color-primary);
+  --Neutral-5: var(--chat--color-primary);
+  --Neutral-10: var(--chat--message--bot--background);
+  --Neutral-15: var(--chat--message--bot--background);
+  --Neutral-20: var(--chat--message--bot--background);
+  --Neutral-30: rgba(42, 42, 42, 0.8);
+  --Neutral-50: var(--chat--color-text);
+  --Neutral-60: var(--chat--color-text);
+  --Neutral-80: var(--chat--color-text);
+  --Neutral-90: var(--chat--color-text);
+  
+  /* Accent colors */
+  --Red-400: var(--chat--color-secondary);
+  --Red-500: var(--chat--color-secondary);
+  --Red-600: var(--chat--color-secondary);
+  --Red-700: var(--chat--color-secondary);
+  
+  --Blue-500: var(--chat--color-secondary);
+  --Blue-800: rgba(42, 42, 42, 0.8);
+}
+
+/* Global styles - careful not to override Material Symbols */
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--chat--color-primary);
+  color: var(--chat--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Override streaming console */
+.streaming-console {
+  background: var(--chat--color-primary);
+  color: var(--chat--color-text);
+  
+  a, a:visited, a:active {
+    color: var(--chat--color-text);
+  }
+}
+
+/* Side panel overrides */
+.side-panel {
+  background: var(--chat--color-primary);
+  border-right: 1px solid rgba(51, 51, 51, 0.8);
+  color: var(--chat--color-text);
+  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  .top {
+    border-bottom: 1px solid rgba(51, 51, 51, 0.8);
+  
+    h2 {
+      color: var(--chat--color-text);
+      font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+  }
+  
+  .streaming-indicator {
+    border: 1px solid rgba(51, 51, 51, 0.8);
+    background: var(--chat--message--bot--background);
+    font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    
+    &.connected {
+      color: var(--chat--color-secondary);
+    }
+  }
+  
+  .input-container {
+    border-top: 1px solid rgba(51, 51, 51, 0.8);
+    
+    .input-content {
+      background: var(--chat--textarea-background);
+      border: 1px solid rgba(51, 51, 51, 0.8);
+      border-radius: 20px;
+      
+      .input-area {
+        color: var(--chat--color-text);
+        font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      
+      .send-button {
+        color: var(--chat--color-secondary);
+        
+        &:hover {
+          color: var(--chat--color-text);
+        }
+      }
+    }
+  }
+}
+
+/* Control tray overrides - preserve the Material Symbols */
+.control-tray {
+  .action-button {
+    background: var(--chat--message--bot--background);
+    color: var(--chat--color-text);
+    border-radius: var(--chat--border-radius);
+    
+    &:focus {
+      border: 2px solid var(--chat--message--bot--background);
+      outline: 2px solid var(--chat--color-secondary);
+    }
+    
+    &.outlined {
+      background: var(--chat--message--bot--background);
+      border: 1px solid rgba(51, 51, 51, 0.8);
+    }
+    
+    &:hover {
+      background: var(--chat--color-primary);
+      border: 1px solid var(--chat--color-secondary);
+    }
+    
+    &.connected {
+      background: var(--chat--message--bot--background);
+      color: var(--chat--color-secondary);
+      
+      &:hover {
+        border: 1px solid var(--chat--color-secondary);
+      }
+    }
+  }
+  
+  .mic-button {
+    background-color: var(--chat--color-secondary);
+    color: var(--chat--message--user--color);
+    
+    &:focus {
+      border: 2px solid var(--chat--message--bot--background);
+      outline: 2px solid var(--chat--color-secondary);
+    }
+    
+    &:hover {
+      background-color: var(--chat--color-secondary);
+      opacity: 0.9;
+    }
+    
+    &:before {
+      background-color: var(--chat--color-secondary);
+      opacity: 0.35;
+    }
+  }
+  
+  .connect-toggle {
+    &:focus {
+      border: 2px solid var(--chat--message--bot--background);
+      outline: 2px solid var(--chat--color-secondary);
+    }
+    
+    &:not(.connected) {
+      background-color: var(--chat--color-secondary);
+      color: var(--chat--message--user--color);
+    }
+  }
+  
+  .connection-container {
+    .connection-button-container {
+      border: 1px solid rgba(51, 51, 51, 0.8);
+      background: var(--chat--color-primary);
+    }
+    
+    .text-indicator {
+      color: var(--chat--color-secondary);
+      font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+  }
+  
+  .actions-nav {
+    background: var(--chat--color-primary);
+    border: 1px solid rgba(51, 51, 51, 0.8);
+    border-radius: var(--chat--border-radius);
+  }
+}
+
+/* Video stream */
+.stream {
+  border-radius: var(--chat--border-radius);
+}
+
+/* Font overrides for text elements, but not icons */
+.space-mono-regular,
+.space-mono-bold,
+.space-mono-regular-italic,
+.space-mono-bold-italic {
+  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* React select overrides */
+.react-select {
+  background: var(--chat--message--bot--background) !important;
+  
+  .react-select__single-value {
+    color: var(--chat--color-text) !important;
+  }
+  
+  .react-select__menu {
+    background: var(--chat--message--bot--background) !important;
+    color: var(--chat--color-text) !important;
+  }
+  
+  .react-select__option:hover,
+  .react-select__option:focus,
+  .react-select__option:focus-within {
+    background: var(--chat--color-primary) !important;
+  }
+}
+
+/* Loading and Error States */
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  background: var(--chat--color-primary);
+  color: var(--chat--color-text);
+  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid var(--chat--color-secondary);
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-container h3 {
+  color: var(--chat--color-secondary);
+  margin-bottom: 10px;
+}
+
+.error-container p {
+  margin-bottom: 20px;
+  text-align: center;
+  max-width: 80%;
+}
+
+.error-container button {
+  background-color: var(--chat--color-secondary);
+  color: var(--chat--message--user--color);
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--chat--border-radius);
+  cursor: pointer;
+  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  transition: opacity 0.2s;
+}
+
+.error-container button:hover {
+  opacity: 0.9;
+} 

@@ -1,0 +1,521 @@
+<!-- COPY THIS SCRIPT AND ADD IT TO YOUR LEARNWORLDS PAGE -->
+
+<script>
+(function() {
+  // Configuration
+  const KADENCE_API_ENDPOINT = 'https://kadence-multimodal.vercel.app/api/gemini-proxy';
+  const DEFAULT_WELCOME_MESSAGE = 'Hi there! I\'m Kadence, your AI music tutor. How can I help you today?';
+  
+  // Find your image(s) - modify this selector as needed for your specific image
+  const TARGET_IMAGE_SELECTOR = 'img[src*="kadence"], img[alt*="kadence"], img[alt*="Kadence"], img[class*="kadence"], img.ai-assistant, img.voice-assistant';
+  
+  // State variables
+  let isListening = false;
+  let isInitialized = false;
+  let audioContext = null;
+  let mediaStream = null;
+  let audioProcessor = null;
+  let wsConnection = null;
+  let username = 'student';
+  let targetImage = null;
+  let statusIndicator = null;
+  let audioElement = null;
+  
+  // Initialize when the DOM is fully loaded
+  window.addEventListener('load', initializeImageFinder);
+  
+  // Find and setup the target image
+  function initializeImageFinder() {
+    // Create audio element
+    audioElement = document.createElement('audio');
+    audioElement.style.display = 'none';
+    document.body.appendChild(audioElement);
+    
+    // Create styles for the status indicator
+    addStatusStyles();
+    
+    // Try to find the image immediately
+    findAndSetupTargetImage();
+    
+    // Also set up a mutation observer to watch for dynamically added images
+    setupMutationObserver();
+  }
+  
+  // Add the necessary styles for the status indicator
+  function addStatusStyles() {
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = `
+      .kadence-status-indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: rgba(234, 67, 53, 0.6);
+        display: none;
+        z-index: 10000;
+        pointer-events: none;
+      }
+      
+      @keyframes kadence-pulse {
+        0% {
+          transform: translate(-50%, -50%) scale(0.95);
+          box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.7);
+        }
+        
+        70% {
+          transform: translate(-50%, -50%) scale(1);
+          box-shadow: 0 0 0 15px rgba(234, 67, 53, 0);
+        }
+        
+        100% {
+          transform: translate(-50%, -50%) scale(0.95);
+          box-shadow: 0 0 0 0 rgba(234, 67, 53, 0);
+        }
+      }
+      
+      .pulse-animation {
+        animation: kadence-pulse 1.5s infinite;
+      }
+      
+      /* Make sure the parent of the image has relative positioning */
+      .kadence-image-container {
+        position: relative !important;
+        display: inline-block;
+      }
+    `;
+    document.head.appendChild(styleSheet);
+  }
+  
+  // Try to find the target image based on selectors
+  function findAndSetupTargetImage() {
+    // Try various selectors to find the image
+    const images = document.querySelectorAll(TARGET_IMAGE_SELECTOR);
+    
+    if (images.length > 0) {
+      // Use the first matching image
+      targetImage = images[0];
+      console.log('Found Kadence target image:', targetImage);
+      
+      // Make sure image doesn't already have Kadence enabled
+      if (targetImage.getAttribute('data-kadence-enabled') === 'true') {
+        return;
+      }
+      
+      // Setup the image for Kadence
+      setupImageForVoice(targetImage);
+    } else {
+      console.log('No matching Kadence images found yet, will continue monitoring');
+    }
+  }
+  
+  // Setup a mutation observer to watch for dynamically added images
+  function setupMutationObserver() {
+    const observer = new MutationObserver((mutations) => {
+      // If we already have a target image, no need to look for more
+      if (targetImage && targetImage.getAttribute('data-kadence-enabled') === 'true') {
+        return;
+      }
+      
+      let shouldCheck = false;
+      
+      // Check if any of the mutations might have added images
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          shouldCheck = true;
+          break;
+        }
+      }
+      
+      if (shouldCheck) {
+        findAndSetupTargetImage();
+      }
+    });
+    
+    // Start observing the entire document
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+  
+  // Setup the found image to work with Kadence
+  function setupImageForVoice(image) {
+    // Mark the image as Kadence-enabled
+    image.setAttribute('data-kadence-enabled', 'true');
+    
+    // Set cursor to pointer to indicate it's clickable
+    image.style.cursor = 'pointer';
+    
+    // Wrap the image in a container if it's not already
+    let container = image.parentElement;
+    
+    // If the parent isn't already positioned, wrap the image
+    if (getComputedStyle(container).position === 'static') {
+      // Create a container for the image
+      const wrapper = document.createElement('div');
+      wrapper.className = 'kadence-image-container';
+      
+      // Replace the image with the wrapper containing the image
+      image.parentNode.insertBefore(wrapper, image);
+      wrapper.appendChild(image);
+      
+      container = wrapper;
+    } else {
+      // Just add a class to the existing parent
+      container.classList.add('kadence-image-container');
+    }
+    
+    // Create status indicator
+    statusIndicator = document.createElement('div');
+    statusIndicator.className = 'kadence-status-indicator';
+    container.appendChild(statusIndicator);
+    
+    // Add click event to the image
+    image.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleVoiceAssistant();
+    });
+    
+    console.log('Kadence voice enabled on image:', image);
+  }
+  
+  // Toggle voice assistant state
+  function toggleVoiceAssistant() {
+    if (!isInitialized) {
+      initializeVoiceAssistant();
+      return;
+    }
+    
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  }
+  
+  // Initialize the voice assistant
+  async function initializeVoiceAssistant() {
+    try {
+      // Try to get username from LearnWorlds
+      username = getUsernameFromLearnWorlds() || 'student';
+      
+      // Initialize audio context
+      audioContext = new (window.AudioContext || window.webkitAudioContext)({
+        sampleRate: 16000,
+        latencyHint: 'interactive'
+      });
+      
+      // Request microphone access
+      mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { 
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      
+      // Create audio processor
+      setupAudioProcessor();
+      
+      // Set up WebSocket connection
+      await setupWebSocket();
+      
+      // Update UI and state
+      isInitialized = true;
+      startListening();
+      
+    } catch (error) {
+      console.error('Failed to initialize voice assistant:', error);
+      alert('Could not initialize voice assistant. Please make sure microphone access is allowed.');
+    }
+  }
+  
+  // Set up audio processor to handle microphone input
+  function setupAudioProcessor() {
+    const sourceNode = audioContext.createMediaStreamSource(mediaStream);
+    const processorNode = audioContext.createScriptProcessor(4096, 1, 1);
+    
+    processorNode.onaudioprocess = (e) => {
+      if (!isListening) return;
+      
+      const inputData = e.inputBuffer.getChannelData(0);
+      
+      // Calculate volume for UI updates
+      let sum = 0;
+      for (let i = 0; i < inputData.length; i++) {
+        sum += Math.abs(inputData[i]);
+      }
+      const volume = Math.min(1, sum / inputData.length / 0.2);
+      updateVolumeIndicator(volume);
+      
+      // Convert to 16-bit PCM
+      const pcmData = float32ToInt16(inputData);
+      const base64Data = arrayBufferToBase64(pcmData.buffer);
+      
+      // Send audio data to WebSocket if connected
+      if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+        wsConnection.send(JSON.stringify({ 
+          inputs: [{
+            mimeType: "audio/pcm;rate=16000",
+            data: base64Data
+          }]
+        }));
+      }
+    };
+    
+    sourceNode.connect(processorNode);
+    processorNode.connect(audioContext.destination);
+    
+    audioProcessor = {
+      sourceNode,
+      processorNode,
+      start: () => {
+        if (audioContext.state === 'suspended') {
+          audioContext.resume();
+        }
+      },
+      stop: () => {
+        // We don't disconnect nodes to allow restarting recording
+      }
+    };
+  }
+  
+  // Try to get username from LearnWorlds
+  function getUsernameFromLearnWorlds() {
+    // Try from global variable
+    if (window.LW && window.LW.user && window.LW.user.name) {
+      return window.LW.user.name;
+    }
+    
+    // Try from DOM elements (LearnWorlds specific classes)
+    const userElements = document.querySelectorAll('.lw-user-name, .username, .user-name, .user-profile-name, .account-name');
+    if (userElements.length > 0) {
+      return userElements[0].textContent.trim();
+    }
+    
+    // Try from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('username');
+  }
+  
+  // Set up WebSocket connection
+  async function setupWebSocket() {
+    try {
+      // Get secure WebSocket URL from proxy
+      const response = await fetch(KADENCE_API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          wsUrl: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent'
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to get secure WebSocket URL');
+      }
+      
+      const data = await response.json();
+      const secureWsUrl = data.secureWsUrl;
+      
+      // Close existing connection if any
+      if (wsConnection) {
+        wsConnection.close();
+      }
+      
+      // Initialize WebSocket
+      wsConnection = new WebSocket(secureWsUrl);
+      
+      // Set up event handlers
+      wsConnection.onopen = handleConnectionOpen;
+      wsConnection.onmessage = handleMessage;
+      wsConnection.onerror = handleConnectionError;
+      wsConnection.onclose = handleConnectionClose;
+      
+      // Wait for connection to open
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('WebSocket connection timeout')), 10000);
+        wsConnection.addEventListener('open', () => {
+          clearTimeout(timeout);
+          resolve();
+        }, { once: true });
+      });
+      
+    } catch (error) {
+      console.error('WebSocket setup failed:', error);
+      throw error;
+    }
+  }
+  
+  // WebSocket event handlers
+  function handleConnectionOpen() {
+    console.log('Connected to Kadence');
+    
+    // Send initial configuration
+    const config = {
+      contents: [],
+      model: "models/gemini-2.0-flash-exp",
+      generationConfig: {
+        responseModalities: "audio",
+        speechConfig: {
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } },
+        },
+      },
+      systemInstruction: {
+        parts: [
+          {
+            text: `You are Kadence, an AI tutor at Futureproof Music School, specializing in electronic music production and creative direction. 
+            Your core mission is to provide expert guidance to aspiring musicians in any language, helping them develop their production skills while finding their unique artistic voice.
+            You respond to user voice inputs. Your main purpose is to provide helpful and informative responses to all user queries. Be concise, clear, and engaging in your responses.
+            
+            The current user's name is ${username}. Always address them by name occasionally to make the conversation more personal. Be friendly and supportive of their musical journey.`
+          },
+        ],
+      },
+    };
+    
+    wsConnection.send(JSON.stringify({ config }));
+    
+    // Send welcome message after a short delay
+    setTimeout(() => {
+      // Use native browser speech synthesis for the initial greeting
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(DEFAULT_WELCOME_MESSAGE);
+        utterance.lang = 'en-US';
+        window.speechSynthesis.speak(utterance);
+      }
+    }, 1000);
+  }
+  
+  function handleMessage(event) {
+    try {
+      const message = JSON.parse(event.data);
+      
+      // Handle audio data
+      if (message.audio) {
+        const audioData = atob(message.audio.data);
+        const arrayBuffer = new ArrayBuffer(audioData.length);
+        const uint8Array = new Uint8Array(arrayBuffer);
+        
+        for (let i = 0; i < audioData.length; i++) {
+          uint8Array[i] = audioData.charCodeAt(i);
+        }
+        
+        playAudio(arrayBuffer);
+      }
+      
+      // Log text responses for debugging
+      if (message.text) {
+        console.log('Kadence:', message.text);
+      }
+    } catch (error) {
+      console.error('Error processing message:', error);
+    }
+  }
+  
+  function handleConnectionError(error) {
+    console.error('WebSocket error:', error);
+    updateListeningState(false);
+    isInitialized = false;
+  }
+  
+  function handleConnectionClose() {
+    console.log('WebSocket connection closed');
+    updateListeningState(false);
+  }
+  
+  // Start listening for user voice input
+  async function startListening() {
+    if (!isInitialized || !audioProcessor) return;
+    
+    try {
+      // Reconnect WebSocket if needed
+      if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) {
+        await setupWebSocket();
+      }
+      
+      // Start audio processor
+      audioProcessor.start();
+      
+      isListening = true;
+      updateListeningState(true);
+    } catch (error) {
+      console.error('Failed to start listening:', error);
+      updateListeningState(false);
+    }
+  }
+  
+  // Stop listening for user voice input
+  function stopListening() {
+    if (!isInitialized || !audioProcessor) return;
+    
+    audioProcessor.stop();
+    isListening = false;
+    updateListeningState(false);
+  }
+  
+  // Update UI to reflect listening state
+  function updateListeningState(active) {
+    if (statusIndicator) {
+      statusIndicator.style.display = active ? 'block' : 'none';
+      if (active) {
+        statusIndicator.classList.add('pulse-animation');
+      } else {
+        statusIndicator.classList.remove('pulse-animation');
+      }
+    }
+  }
+  
+  // Update volume indicator based on microphone input
+  function updateVolumeIndicator(volume) {
+    if (statusIndicator && isListening) {
+      // Scale from 1.0 to 1.5 based on volume
+      const scale = 1 + (volume * 0.5);
+      statusIndicator.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+  }
+  
+  // Play audio from arraybuffer
+  function playAudio(arrayBuffer) {
+    const blob = new Blob([arrayBuffer], { type: 'audio/wav' });
+    const url = URL.createObjectURL(blob);
+    
+    audioElement.src = url;
+    audioElement.onended = () => {
+      URL.revokeObjectURL(url);
+      // Automatically start listening when AI finishes speaking
+      if (isInitialized && !isListening) {
+        startListening();
+      }
+    };
+    audioElement.play();
+  }
+  
+  // Utility functions for audio processing
+  function float32ToInt16(float32Array) {
+    const int16Array = new Int16Array(float32Array.length);
+    for (let i = 0; i < float32Array.length; i++) {
+      // Convert -1.0 - 1.0 to -32768 - 32767
+      const s = Math.max(-1, Math.min(1, float32Array[i]));
+      int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+    return int16Array;
+  }
+  
+  function arrayBufferToBase64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+  }
+})();
+</script>
+<!-- END OF SCRIPT --> 
