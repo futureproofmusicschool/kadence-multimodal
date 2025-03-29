@@ -53,6 +53,9 @@ export function useLiveAPI({
   const sessionLogRef = useRef<SessionLog | null>(null);
   const usernameRef = useRef<string>('student');
   const userIdRef = useRef<string>('anonymous');
+  // Define more precise type for the send method
+  type SendMethod = (parts: any, turnComplete?: boolean) => any;
+  const originalSendRef = useRef<SendMethod | null>(null);
 
   // register audio for streaming server -> speakers
   useEffect(() => {
@@ -90,12 +93,21 @@ export function useLiveAPI({
         console.log("No session log found in ref on disconnect.");
     }
     
+    // Restore original send method if needed before disconnecting
+    if (originalSendRef.current && client.send !== originalSendRef.current) {
+      console.log("[useLiveAPI] Restoring original send method during disconnect");
+      client.send = originalSendRef.current;
+    }
+    
     client.disconnect();
     setConnected(false);
   }, [client]); // Only depends on client
 
   // Effect for handling client events (close, audio, content, etc.)
   useEffect(() => {
+    // Store the original send method at the beginning of the effect
+    originalSendRef.current = client.send;
+  
     const onClose = () => {
       console.log("Connection closed. Attempting to save log from ref.");
       setConnected(false);
@@ -121,15 +133,28 @@ export function useLiveAPI({
     
     // Track assistant content for conversation logging
     const onContent = (content: any) => {
-      if (!sessionLogRef.current || !content) return; 
+      if (!sessionLogRef.current || !content) {
+        console.log("[useLiveAPI] Skipping content event - no session log or empty content");
+        return;
+      }
       
-      console.log("[useLiveAPI] Got content event:", JSON.stringify(content).substring(0, 200) + "...");
+      console.log("[useLiveAPI] Got content event type:", typeof content);
+      // Safer logging that won't crash on circular references
+      try {
+        console.log("[useLiveAPI] Got content event keys:", Object.keys(content));
+        if (content.text) console.log("[useLiveAPI] content.text exists:", content.text.substring(0, 50));
+        if (content.parts) console.log("[useLiveAPI] content.parts exists:", JSON.stringify(content.parts).substring(0, 50));
+        if (content.modelTurn) console.log("[useLiveAPI] content.modelTurn exists:", typeof content.modelTurn);
+      } catch (e) {
+        console.log("[useLiveAPI] Error logging content event:", e);
+      }
       
       // Try multiple possible content structures from Gemini Live API
       let textContent = '';
       
       // Structure 1: content.modelTurn.parts (original expected structure)
       if (content.modelTurn && content.modelTurn.parts) {
+        console.log("[useLiveAPI] Extracting from modelTurn.parts");
         const parts = content.modelTurn.parts;
         parts.forEach((part: any) => {
           if (part.text) {
@@ -139,6 +164,7 @@ export function useLiveAPI({
       } 
       // Structure 2: content.candidates[0].content.parts (alternative structure)
       else if (content.candidates && content.candidates[0]?.content?.parts) {
+        console.log("[useLiveAPI] Extracting from candidates[0].content.parts");
         const parts = content.candidates[0].content.parts;
         parts.forEach((part: any) => {
           if (part.text) {
@@ -148,20 +174,29 @@ export function useLiveAPI({
       }
       // Structure 3: direct text property
       else if (content.text) {
+        console.log("[useLiveAPI] Extracting from direct text property");
         textContent = content.text;
       }
       // Structure 4: content.parts array directly
       else if (content.parts && Array.isArray(content.parts)) {
+        console.log("[useLiveAPI] Extracting from parts array");
         content.parts.forEach((part: any) => {
           if (part.text) {
             textContent += part.text;
           }
         });
       }
-      // Structure 5: content might just be a string
+      // Structure 5: content might be the raw chunk of text (streaming model)
       else if (typeof content === 'string') {
+        console.log("[useLiveAPI] Content is a string, using directly");
         textContent = content;
       }
+      // Structure 6: content.transcript (common for audio/speech responses)
+      else if (content.transcript) {
+        console.log("[useLiveAPI] Extracting from transcript property");
+        textContent = content.transcript;
+      }
+      // Add any other structures you discover in your debugging
       
       if (textContent) {
         const newMessage: ConversationMessage = {
@@ -173,19 +208,25 @@ export function useLiveAPI({
         console.log("[useLiveAPI] ✅ Assistant message added to ref:", textContent.substring(0, 50) + "...");
       } else {
         console.log("[useLiveAPI] ❌ No text content found in event - structure may be different than expected");
+        // Log the full structure as a last resort to debug
+        try {
+          console.log("[useLiveAPI] Full content event:", JSON.stringify(content));
+        } catch (e) {
+          console.log("[useLiveAPI] Could not stringify full event:", e);
+        }
       }
     };
     
     // --- Monkey patch client.send --- 
-    const originalSendRef = useRef(client.send);
-    if (client.send === originalSendRef.current) {
+    if (originalSendRef.current && client.send === originalSendRef.current) {
+        const originalSend = originalSendRef.current; // Store in local variable to avoid null checks
         client.send = (parts: any, turnComplete = true) => {
           // First, add logging to see what's being sent
           console.log("[useLiveAPI] client.send called with parts:", 
             JSON.stringify(Array.isArray(parts) ? parts : [parts]).substring(0, 200) + "...");
             
-          // Call the original method first
-          const result = originalSendRef.current.call(client, parts, turnComplete);
+          // Call the original method using the local variable
+          const result = originalSend.call(client, parts, turnComplete);
           
           // Now, log the user message using the ref
           if (sessionLogRef.current) {
@@ -239,7 +280,8 @@ export function useLiveAPI({
 
     return () => {
       console.log("[useLiveAPI] Cleaning up listeners and restoring send.");
-      if (client.send !== originalSendRef.current) {
+      // Now check that both are non-null before comparison
+      if (originalSendRef.current && client.send !== originalSendRef.current) {
         client.send = originalSendRef.current;
       }
       client
