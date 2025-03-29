@@ -1,6 +1,7 @@
 {
   "name": "multimodal-live-api-web-console",
   "version": "0.1.0",
+  "type": "module",
   "dependencies": {
     "@supabase/supabase-js": "^2.49.3",
     "@vercel/node": "^5.1.14",
