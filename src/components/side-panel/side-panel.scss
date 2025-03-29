@@ -1,44 +1,51 @@
 .side-panel {
   .react-select {
     background: var(--Neutral-20);
-    color: var(--Neutral-90);
+    color: white;
     width: 193px;
     height: 30px;
 
     .react-select__single-value {
-      color: var(--Neutral-90);
+      color: white;
     }
 
     .react-select__menu {
       background: var(--Neutral-20);
-      color: var(--Neutral-90);
+      color: white;
     }
 
     .react-select__option {
+      // Styles for option
     }
+    
     .react-select__value-container {
+      // Styles for value container
     }
+    
     .react-select__indicators {
+      // Styles for indicators
     }
+    
     .react-select__option:hover,
     .react-select__option:focus,
     .react-select_option:focus-within {
       background: var(--Neutral-30);
     }
-    .react-select__option--is-focused: {
+    
+    .react-select__option--is-focused {
       background: var(--Neutral-30);
     }
   }
-  background: var(--Neutral-00);
+  
+  background: black;
   width: 40px; /* when closed */
   display: flex;
   flex-direction: column;
   height: 100vh;
   transition: all 0.2s ease-in;
-  font-family: Arial, sans-serif;
-  border-right: 1px solid var(--gray-600);
-  color: var(--Neutral-90, #e1e2e3);
-  font-family: var(--font-family);
+  font-family: "Courier", monospace;
+  border-left: 1px solid #444444;
+  color: white;
   font-size: 13px;
   font-style: normal;
   font-weight: 400;
@@ -64,12 +71,12 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 20px 12px 25px;
-    border-bottom: 1px solid var(--Neutral-20);
+    border-bottom: 1px solid #444444;
 
     h2 {
       position: relative;
-      color: var(--Neutral-90, #e1e2e3);
-      font-family: "Google Sans";
+      color: white;
+      font-family: "Courier", monospace;
       font-size: 21px;
       font-style: normal;
       font-weight: 500;
@@ -128,8 +135,8 @@
     .streaming-indicator {
       user-select: none;
       border-radius: 4px;
-      border: 1px solid var(--Neutral-20, #2a2f31);
-      background: var(--Neutral-10, #1c1f21);
+      border: 1px solid #444444;
+      background: black;
       display: flex;
       width: 136px;
       height: 30px;
@@ -139,7 +146,7 @@
       gap: 6px;
       flex-shrink: 0;
       text-align: center;
-      font-family: "Space Mono";
+      font-family: "Courier", monospace;
       font-size: 14px;
       font-style: normal;
       font-weight: 400;
@@ -147,7 +154,7 @@
       transition: width 0.2s ease-in;
 
       &.connected {
-        color: var(--Blue-500, #0d9c53);
+        color: #b39ddb; /* Lavender color */
       }
     }
   }
@@ -165,14 +172,14 @@
     height: 50px;
     flex-grow: 0;
     flex-shrink: 0;
-    border-top: 1px solid var(--Neutral-20);
+    border-top: 1px solid #444444;
     padding: 14px 25px;
     overflow: hidden;
 
     .input-content {
       position: relative;
-      background: var(--Neutral-10);
-      border: 1px solid var(--Neutral-15);
+      background: #111111;
+      border: 1px solid #444444;
       height: 22px;
       border-radius: 10px;
       padding: 11px 18px;
@@ -184,19 +191,19 @@
         transform: translate(0, -50%);
         background: none;
         border: 0;
-        color: var(--Neutral-20);
+        color: #a9a9a9;
         cursor: pointer;
         transition: color 0.1s ease-in;
         z-index: 2;
 
         &:hover {
-          color: var(--Neutral-60);
+          color: #b39ddb; /* Lavender color */
         }
       }
 
       .input-area {
         background: none;
-        color: var(--Neutral-90);
+        color: white;
         field-sizing: content;
         position: absolute;
         top: 0;
@@ -213,6 +220,7 @@
         padding: 14px 18px;
         border: 0;
         resize: none;
+        font-family: "Courier", monospace;
       }
 
       .input-content-placeholder {
@@ -228,6 +236,7 @@
         user-select: none;
         padding: 0px 18px;
         white-space: pre-wrap;
+        color: #a9a9a9;
       }
     }
   }

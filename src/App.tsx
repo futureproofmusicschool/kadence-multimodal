@@ -122,7 +122,6 @@ function App() {
       {/* Important: Pass an empty string as the apiKey, since it's already in the secureUri */}
       <LiveAPIProvider url={secureUri} apiKey="">
         <div className="streaming-console">
-          <SidePanel username={username} />
           <main>
             <div className="main-app-area">
               {/* Pass username to Kadence component */}
@@ -149,6 +148,7 @@ function App() {
               {/* put your own buttons here */}
             </ControlTray>
           </main>
+          <SidePanel username={username} />
         </div>
       </LiveAPIProvider>
     </div>

@@ -1,5 +1,5 @@
 .logger {
-  color: var(--gray-300);
+  color: white;
   width: 100%;
   max-width: 100%;
   display: block;
@@ -69,8 +69,8 @@
 .logger li {
   display: block;
   padding: 8px 0;
-  color: var(--Neutral-50, #707577);
-  font-family: "Space Mono";
+  color: white;
+  font-family: "Courier", monospace;
   font-size: 14px;
   font-style: normal;
   font-weight: 400;
@@ -81,7 +81,7 @@
   width: 70px;
   flex-grow: 0;
   flex-shrink: 0;
-  color: var(--Neutral-50);
+  color: #a9a9a9;
 }
 
 .logger li .source {
@@ -91,12 +91,12 @@
 
 .logger li.source-server,
 .logger li.receive {
-  color: var(--Blue-500);
+  color: #b39ddb; /* Lavender color */
 }
 
 .logger li.source-client,
 .logger li.send:not(.source-server) {
-  color: var(--Green-500);
+  color: white;
 }
 
 .logger li .count {
@@ -107,10 +107,10 @@
   line-height: 1em;
   vertical-align: middle;
   border-radius: 8px;
-  color: var(--Blue-500);
+  color: #b39ddb; /* Lavender color */
 }
 
 .logger li .message {
   flex-grow: 1;
-  color: var(--Neutral-50);
+  color: white;
 }
