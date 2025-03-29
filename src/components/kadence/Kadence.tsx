@@ -77,8 +77,11 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
         ],
       },
       tools: [
-        { googleSearch: {} }, // Google Search tool
-        functionCallingTool   // Our function calling tool object
+        // Combine into a single object within the array
+        {
+          googleSearch: {}, 
+          functionDeclarations: [LATEST_TRACK_ANALYSIS_FUNCTION]
+        }
       ],
     });
   }, [setConfig, username]);
