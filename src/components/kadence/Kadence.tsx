@@ -15,14 +15,31 @@
  */
 import { useEffect, memo, useRef } from "react";
 import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
+import { FunctionDeclaration, SchemaType } from "@google/generative-ai";
 
 interface KadenceProps {
   username?: string;
 }
 
+// Define the function declaration schema
+const LATEST_TRACK_ANALYSIS_FUNCTION: FunctionDeclaration = {
+  name: "latest_track_analyses",
+  description: "Fetches the latest analysis of the user's most recently uploaded music track when the user asks about it, mentions uploaded music, attached audio, or asks Kadence to listen to something they provided.",
+  parameters: {
+    type: SchemaType.OBJECT,
+    properties: {}, // No parameters needed from the model itself
+  },
+};
+
 function KadenceComponent({ username = 'student' }: KadenceProps) {
   const { client, setConfig, connected } = useLiveAPIContext();
   const hasInitiatedRef = useRef(false);
+  const usernameRef = useRef(username); // Store username in a ref
+
+  // Update username ref if prop changes
+  useEffect(() => {
+    usernameRef.current = username;
+  }, [username]);
 
   // Set system configuration on component mount or when username changes
   useEffect(() => {
@@ -57,6 +74,7 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
       tools: [
         // there is a free-tier quota for search
         { googleSearch: {} },
+        { functionDeclarations: [LATEST_TRACK_ANALYSIS_FUNCTION] },
       ],
     });
   }, [setConfig, username]);

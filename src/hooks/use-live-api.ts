@@ -19,11 +19,12 @@ import {
   MultimodalLiveAPIClientConnection,
   MultimodalLiveClient,
 } from "../lib/multimodal-live-client";
-import { LiveConfig } from "../multimodal-live-types";
+import { LiveConfig, LiveFunctionCall } from "../multimodal-live-types";
 import { AudioStreamer } from "../lib/audio-streamer";
 import { audioContext } from "../lib/utils";
 import VolMeterWorket from "../lib/worklets/vol-meter";
 import { fetchUserContext } from "../lib/user-context-service";
+import { ToolResponse } from "../multimodal-live-types";
 
 export type UseLiveAPIResults = {
   client: MultimodalLiveClient;
@@ -49,6 +50,7 @@ export function useLiveAPI({
     model: "models/gemini-2.0-flash-exp",
   });
   const [volume, setVolume] = useState(0);
+  const usernameRef = useRef<string>('student');
 
   // register audio for streaming server -> speakers
   useEffect(() => {
@@ -73,7 +75,61 @@ export function useLiveAPI({
     setConnected(false);
   }, [client]);
 
-  // Effect for handling client events (close, audio, content, etc.)
+  // --- Function to handle the actual API call ---
+  const handleTrackAnalysisCall = useCallback(async (functionCall: LiveFunctionCall) => {
+    console.log(`[Function Call] Received call for: ${functionCall.name}`);
+    const N8N_WEBHOOK_URL = 'https://futureproofmusic.app.n8n.cloud/webhook/4526c76c-08e8-4473-9d24-cfb559b77cbf';
+    
+    try {
+      console.log(`[Function Call] Calling n8n webhook for user: ${usernameRef.current}`);
+      const response = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: usernameRef.current }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Webhook failed with status ${response.status}`);
+      }
+      
+      const analysisResult = await response.json();
+      console.log("[Function Call] Received analysis:", analysisResult);
+      
+      // Send the result back to the Gemini model
+      const toolResponse: ToolResponse = {
+        functionResponses: [
+          {
+            id: functionCall.id,
+            response: { result: analysisResult }
+          }
+        ]
+      };
+      client.sendToolResponse(toolResponse);
+      console.log("[Function Call] Sent response back to Gemini.");
+
+    } catch (error: any) {
+      console.error("[Function Call] Error calling webhook or processing response:", error);
+      // Optionally send an error response back to Gemini
+      const errorResponse: ToolResponse = {
+        functionResponses: [
+          {
+            id: functionCall.id,
+            response: { error: `Failed to fetch analysis: ${error.message}` }
+          }
+        ]
+      };
+       try {
+         client.sendToolResponse(errorResponse);
+         console.log("[Function Call] Sent error response back to Gemini.");
+       } catch (sendError) {
+         console.error("[Function Call] Failed to send error response to Gemini:", sendError);
+       }
+    }
+  }, [client]);
+
+  // Effect for handling client events
   useEffect(() => {
     const onOpen = () => {
       console.log("WebSocket connection opened");
@@ -90,13 +146,38 @@ export function useLiveAPI({
       audioStreamerRef.current?.addPCM16(new Uint8Array(data));
     }
     
-    // Attach basic event listeners
+    // --- Listener for Tool Calls --- 
+    const onToolCall = (toolCall: any) => {
+        console.log("[Tool Call Received]:", JSON.stringify(toolCall));
+        if (toolCall.functionCalls && toolCall.functionCalls.length > 0) {
+            toolCall.functionCalls.forEach((call: LiveFunctionCall) => {
+                 if (call.name === 'latest_track_analyses') {
+                    handleTrackAnalysisCall(call);
+                 }
+            });
+        }
+    };
+    // -----------------------------
+
+    // Attach basic + toolcall event listeners
     client
       .on("open", onOpen)
       .on("close", onClose)
       .on("interrupted", stopAudioStreamer)
-      .on("audio", onAudio);
-  }, [client]);
+      .on("audio", onAudio)
+      .on("toolcall", onToolCall);
+
+    // Cleanup function
+    return () => {
+      console.log("Cleaning up listeners.");
+      client
+        .off("open", onOpen)
+        .off("close", onClose)
+        .off("interrupted", stopAudioStreamer)
+        .off("audio", onAudio)
+        .off("toolcall", onToolCall);
+    };
+  }, [client, handleTrackAnalysisCall]);
 
   // Define connect AFTER disconnect
   const connect = useCallback(async () => {
@@ -111,7 +192,6 @@ export function useLiveAPI({
     
     try {
       let username = 'student';
-      let userId = 'anonymous';
       const systemInstructionText = config.systemInstruction?.parts?.[0]?.text;
       
       if (systemInstructionText) {
@@ -119,11 +199,10 @@ export function useLiveAPI({
         if (usernameMatch && usernameMatch[1]) {
           username = usernameMatch[1].trim();
         }
-        const userIdMatch = systemInstructionText.match(/User ID: ([^\n]+)/i); 
-        if (userIdMatch && userIdMatch[1]) {
-          userId = userIdMatch[1].trim();
-        }
       }
+      
+      // Store the username in the ref for the function call handler
+      usernameRef.current = username;
       
       const userContext = await fetchUserContext(username);
       let updatedConfig = { ...config }; 
@@ -133,7 +212,6 @@ export function useLiveAPI({
         let newSystemPrompt = currentText;
         const userSectionIndex = currentText.indexOf("The current user's name is");
         const contextInsertion = `\n\nImportant Information About This User:\n${userContext}\n\nYou should reference this information naturally in your conversation to personalize your assistance.\nDon't explicitly state that you have this information, but use it to tailor your responses.\n\n`;
-
         if (userSectionIndex !== -1) {
             const afterUserSection = currentText.substring(userSectionIndex);
             const nextParaIndex = afterUserSection.indexOf("\n\n");
