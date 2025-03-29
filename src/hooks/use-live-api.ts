@@ -25,7 +25,6 @@ import { audioContext } from "../lib/utils";
 import VolMeterWorket from "../lib/worklets/vol-meter";
 import { fetchUserContext } from "../lib/user-context-service";
 import { ConversationMessage, SessionLog, saveSessionLog } from "../lib/session-logger";
-import { logConversation } from "../lib/supabase-client";
 
 export type UseLiveAPIResults = {
   client: MultimodalLiveClient;
@@ -36,37 +35,6 @@ export type UseLiveAPIResults = {
   disconnect: () => Promise<void>;
   volume: number;
 };
-
-// Add this function to track the last messages from user and assistant
-function trackConversationPair(
-  userId: string,
-  username: string,
-  userMessages: ConversationMessage[],
-  assistantMessages: ConversationMessage[]
-) {
-  console.log('[trackConversationPair] Checking if logging is needed...', { 
-    userId, 
-    username, 
-    userMsgCount: userMessages.length, 
-    assistantMsgCount: assistantMessages.length 
-  });
-
-  // Only log if we have both a user message and an assistant response
-  if (userMessages.length > 0 && assistantMessages.length > 0) {
-    // Get the latest user message and assistant response
-    const latestUserMessage = userMessages[userMessages.length - 1];
-    const latestAssistantMessage = assistantMessages[assistantMessages.length - 1];
-    
-    console.log('[trackConversationPair] Logging to Supabase:', { userId, username, userMsg: latestUserMessage.content.substring(0,50)+'...', assistantMsg: latestAssistantMessage.content.substring(0,50)+'...'});
-    // Log to Supabase
-    logConversation(
-      userId, 
-      username, 
-      latestUserMessage.content, 
-      latestAssistantMessage.content
-    );
-  }
-}
 
 export function useLiveAPI({
   url,
@@ -88,11 +56,7 @@ export function useLiveAPI({
   const [sessionLog, setSessionLog] = useState<SessionLog | null>(null);
   const sessionStartTimeRef = useRef<number>(0);
   const usernameRef = useRef<string>('student');
-
-  // Add tracking for user and assistant messages
-  const userMessagesRef = useRef<ConversationMessage[]>([]);
-  const assistantMessagesRef = useRef<ConversationMessage[]>([]);
-  const userIdRef = useRef<string>('');
+  const userIdRef = useRef<string>('anonymous');
 
   // register audio for streaming server -> speakers
   useEffect(() => {
@@ -152,7 +116,6 @@ export function useLiveAPI({
             timestamp: Date.now()
           };
           
-          // Update the session log
           setSessionLog(prevLog => {
             if (!prevLog) return null;
             return {
@@ -160,18 +123,6 @@ export function useLiveAPI({
               messages: [...prevLog.messages, newMessage]
             };
           });
-          
-          // Track the assistant message
-          assistantMessagesRef.current.push(newMessage);
-          
-          console.log('[onContent] Assistant message received, attempting to track pair...');
-          // Try to log the conversation pair to Supabase
-          trackConversationPair(
-            userIdRef.current,
-            usernameRef.current,
-            userMessagesRef.current,
-            assistantMessagesRef.current
-          );
         }
       }
     };
@@ -200,7 +151,6 @@ export function useLiveAPI({
             timestamp: Date.now()
           };
           
-          // Update the session log
           setSessionLog(prevLog => {
             if (!prevLog) return null;
             return {
@@ -208,12 +158,6 @@ export function useLiveAPI({
               messages: [...prevLog.messages, newMessage]
             };
           });
-          
-          // Track the user message
-          userMessagesRef.current.push(newMessage);
-          
-          // Reset the assistant messages since this is a new user message
-          assistantMessagesRef.current = [];
         }
       }
       
@@ -250,30 +194,26 @@ export function useLiveAPI({
     client.disconnect();
     
     try {
-      // Extract username from system instruction if available
+      // Extract username AND user ID from system instruction or context
       let username = 'student';
-      let userId = '';
+      let userId = 'anonymous'; // Default user ID
       const systemInstructionText = config.systemInstruction?.parts?.[0]?.text;
       
       if (systemInstructionText) {
-        // Try to extract username from system instruction text
         const usernameMatch = systemInstructionText.match(/current user's name is ([^\.]+)/i);
         if (usernameMatch && usernameMatch[1]) {
           username = usernameMatch[1].trim();
         }
+        // Attempt to extract User ID if available in the context part (you might need to adjust this regex based on how user ID is included)
+        const userIdMatch = systemInstructionText.match(/User ID: ([^\n]+)/i); 
+        if (userIdMatch && userIdMatch[1]) {
+          userId = userIdMatch[1].trim();
+        }
       }
       
-      // Get userId from URL parameters if available
-      const urlParams = new URLSearchParams(window.location.search);
-      userId = urlParams.get('userId') || '';
-      
-      // Store username and userId for session logging
+      // Store the username and user ID for session logging
       usernameRef.current = username;
-      userIdRef.current = userId;
-      
-      // Reset message tracking
-      userMessagesRef.current = [];
-      assistantMessagesRef.current = [];
+      userIdRef.current = userId; // Store the extracted user ID
       
       // Fetch user context from n8n webhook
       const userContext = await fetchUserContext(username);
@@ -336,7 +276,8 @@ Don't explicitly state that you have this information, but use it to tailor your
       // Initialize session logging
       sessionStartTimeRef.current = Date.now();
       setSessionLog({
-        username: username,
+        user_id: userIdRef.current, // Use the stored user ID
+        username: usernameRef.current,
         startTime: sessionStartTimeRef.current,
         endTime: null,
         messages: []
@@ -363,10 +304,6 @@ Don't explicitly state that you have this information, but use it to tailor your
       await saveSessionLog(completedLog);
       setSessionLog(null);
     }
-    
-    // Clear message tracking
-    userMessagesRef.current = [];
-    assistantMessagesRef.current = [];
     
     client.disconnect();
     setConnected(false);

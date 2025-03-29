@@ -9,29 +9,11 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "X-Requested-With, Content-Type, Accept" }
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" },
-    { "source": "/api/gemini-proxy", "destination": "/api/gemini-proxy" },
-    { "source": "/api/log-conversation", "destination": "/api/log-conversation" }
-  ],
-  "env": {
-    "GEMINI_API_KEY": "@gemini_api_key",
-    "SUPABASE_URL": "@supabase_url",
-    "SUPABASE_SERVICE_KEY": "@supabase_service_key",
-    "SUPABASE_TABLE": "@supabase_table"
-  },
-  "build": {
-    "env": {
-      "NEXT_PUBLIC_SUPABASE_URL": "@next_public_supabase_url",
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@next_public_supabase_anon_key",
-      "NEXT_PUBLIC_SUPABASE_TABLE": "@next_public_supabase_table"
-    }
-  }
+    { "source": "/(.*)", "destination": "/" }
+  ]
 } 
