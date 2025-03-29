@@ -19,7 +19,7 @@
   const DEFAULT_CONFIG = {
     apiEndpoint: "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent",
     proxyEndpoint: "https://kadence-multimodal.vercel.app/api/gemini-proxy",
-    model: "models/gemini-2.0-flash",
+    model: "models/gemini-2.0-flash-exp",
     username: "Student"
   };
   

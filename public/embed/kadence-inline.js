@@ -336,7 +336,7 @@
     // Send initial configuration
     const config = {
       contents: [],
-      model: "models/gemini-2.0-flash",
+      model: "models/gemini-2.0-flash-exp",
       generationConfig: {
         responseModalities: "audio",
         speechConfig: {
