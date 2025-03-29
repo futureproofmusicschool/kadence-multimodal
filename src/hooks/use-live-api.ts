@@ -45,16 +45,12 @@ export function useLiveAPI({
     [url, apiKey],
   );
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
-
   const [connected, setConnected] = useState(false);
   const [config, setConfig] = useState<LiveConfig>({
     model: "models/gemini-2.0-flash-exp",
   });
   const [volume, setVolume] = useState(0);
-  
-  // Session logging state
-  const [sessionLog, setSessionLog] = useState<SessionLog | null>(null);
-  const sessionStartTimeRef = useRef<number>(0);
+  const sessionLogRef = useRef<SessionLog | null>(null);
   const usernameRef = useRef<string>('student');
   const userIdRef = useRef<string>('anonymous');
 
@@ -74,18 +70,47 @@ export function useLiveAPI({
     }
   }, [audioStreamerRef]);
 
+  // Define disconnect first as connect depends on it now
+  const disconnect = useCallback(async () => {
+    console.log("Disconnect called. Attempting to save log from ref.");
+    // Save the session log from the ref before disconnecting
+    if (sessionLogRef.current) {
+      const completedLog: SessionLog = {
+        ...sessionLogRef.current,
+        endTime: Date.now()
+      };
+      console.log("Saving log from ref on disconnect:", completedLog);
+      try {
+         await saveSessionLog(completedLog);
+      } catch (saveError) {
+          console.error("Error saving log during disconnect:", saveError);
+      }
+      sessionLogRef.current = null; // Clear the ref
+    } else {
+        console.log("No session log found in ref on disconnect.");
+    }
+    
+    client.disconnect();
+    setConnected(false);
+  }, [client]); // Only depends on client
+
+  // Effect for handling client events (close, audio, content, etc.)
   useEffect(() => {
     const onClose = () => {
+      console.log("Connection closed. Attempting to save log from ref.");
       setConnected(false);
       
-      // Save the session log when disconnected
-      if (sessionLog) {
+      // Save the session log when disconnected, reading from the ref
+      if (sessionLogRef.current) {
         const completedLog: SessionLog = {
-          ...sessionLog,
+          ...sessionLogRef.current,
           endTime: Date.now()
         };
-        saveSessionLog(completedLog);
-        setSessionLog(null);
+        console.log("Saving log from ref on close:", completedLog);
+        saveSessionLog(completedLog); // Fire-and-forget for now
+        sessionLogRef.current = null; // Clear the ref after saving
+      } else {
+        console.log("No session log found in ref on close.");
       }
     };
 
@@ -94,14 +119,12 @@ export function useLiveAPI({
     const onAudio = (data: ArrayBuffer) =>
       audioStreamerRef.current?.addPCM16(new Uint8Array(data));
     
-    // Track content for conversation logging
+    // Track assistant content for conversation logging
     const onContent = (content: any) => {
-      if (!sessionLog || !content) return;
+      if (!sessionLogRef.current || !content) return; 
       
-      // Extract text from model turn
       if (content.modelTurn && content.modelTurn.parts) {
         const parts = content.modelTurn.parts;
-        
         let textContent = '';
         parts.forEach((part: any) => {
           if (part.text) {
@@ -115,54 +138,40 @@ export function useLiveAPI({
             content: textContent,
             timestamp: Date.now()
           };
-          
-          setSessionLog(prevLog => {
-            if (!prevLog) return null;
-            return {
-              ...prevLog,
-              messages: [...prevLog.messages, newMessage]
-            };
-          });
+          sessionLogRef.current.messages.push(newMessage); 
+          console.log("[useLiveAPI] Assistant message added to ref:", textContent.substring(0, 50) + "...");
         }
       }
     };
     
-    // Monkey patch the send method to capture user messages
-    const originalSend = client.send;
-    client.send = (parts: any, turnComplete = true) => {
-      // Call the original method
-      const result = originalSend.call(client, parts, turnComplete);
-      
-      // Extract text content from the parts for logging
-      if (sessionLog) {
-        let textContent = '';
-        const partsArray = Array.isArray(parts) ? parts : [parts];
-        
-        partsArray.forEach((part: any) => {
-          if (part.text) {
-            textContent += part.text;
+    // --- Monkey patch client.send --- 
+    const originalSendRef = useRef(client.send);
+    if (client.send === originalSendRef.current) {
+        client.send = (parts: any, turnComplete = true) => {
+          const result = originalSendRef.current.call(client, parts, turnComplete);
+          if (sessionLogRef.current) {
+            let textContent = '';
+            const partsArray = Array.isArray(parts) ? parts : [parts];
+            partsArray.forEach((part: any) => {
+              if (part.text) { 
+                textContent += part.text;
+              }
+            });
+            if (textContent) {
+              const newMessage: ConversationMessage = {
+                role: 'user',
+                content: textContent,
+                timestamp: Date.now()
+              };
+              sessionLogRef.current.messages.push(newMessage);
+              console.log("[useLiveAPI] User message added to ref:", textContent.substring(0, 50) + "...");
+            }
           }
-        });
-        
-        if (textContent) {
-          const newMessage: ConversationMessage = {
-            role: 'user',
-            content: textContent,
-            timestamp: Date.now()
-          };
-          
-          setSessionLog(prevLog => {
-            if (!prevLog) return null;
-            return {
-              ...prevLog,
-              messages: [...prevLog.messages, newMessage]
-            };
-          });
-        }
-      }
-      
-      return result;
-    };
+          return result;
+        };
+        console.log("[useLiveAPI] Patched client.send for logging.");
+    }
+    // -----------------------------
 
     client
       .on("close", onClose)
@@ -171,32 +180,34 @@ export function useLiveAPI({
       .on("content", onContent);
 
     return () => {
-      // Restore the original send method
-      if (client.send !== originalSend) {
-        client.send = originalSend;
+      console.log("[useLiveAPI] Cleaning up listeners and restoring send.");
+      if (client.send !== originalSendRef.current) {
+        client.send = originalSendRef.current;
       }
-      
       client
         .off("close", onClose)
         .off("interrupted", stopAudioStreamer)
         .off("audio", onAudio)
         .off("content", onContent);
     };
-  }, [client, sessionLog]);
+  }, [client]);
 
+  // Define connect AFTER disconnect
   const connect = useCallback(async () => {
     console.log("Starting connection with config:", config);
     if (!config) {
       throw new Error("config has not been set");
     }
     
-    // Disconnect any existing connection
-    client.disconnect();
+    if (connected) {
+      await disconnect(); 
+    }
+    // No need to call client.disconnect() here again, disconnect function handles it
+    sessionLogRef.current = null; // Clear ref before new connection
     
     try {
-      // Extract username AND user ID from system instruction or context
       let username = 'student';
-      let userId = 'anonymous'; // Default user ID
+      let userId = 'anonymous';
       const systemInstructionText = config.systemInstruction?.parts?.[0]?.text;
       
       if (systemInstructionText) {
@@ -204,110 +215,66 @@ export function useLiveAPI({
         if (usernameMatch && usernameMatch[1]) {
           username = usernameMatch[1].trim();
         }
-        // Attempt to extract User ID if available in the context part (you might need to adjust this regex based on how user ID is included)
         const userIdMatch = systemInstructionText.match(/User ID: ([^\n]+)/i); 
         if (userIdMatch && userIdMatch[1]) {
           userId = userIdMatch[1].trim();
         }
       }
       
-      // Store the username and user ID for session logging
       usernameRef.current = username;
-      userIdRef.current = userId; // Store the extracted user ID
+      userIdRef.current = userId;
       
-      // Fetch user context from n8n webhook
       const userContext = await fetchUserContext(username);
-      
-      // Create a new configuration with user context injected
-      let updatedConfig = { ...config };
+      let updatedConfig = { ...config }; 
       
       if (userContext && updatedConfig.systemInstruction?.parts?.[0]?.text) {
         const currentText = updatedConfig.systemInstruction.parts[0].text;
-        
-        // Insert context in a more structured way for better AI use
         let newSystemPrompt = currentText;
-        
-        // Find the best insertion point - after user introduction but before conversation guidance
         const userSectionIndex = currentText.indexOf("The current user's name is");
-        
+        const contextInsertion = `\n\nImportant Information About This User:\n${userContext}\n\nYou should reference this information naturally in your conversation to personalize your assistance.\nDon't explicitly state that you have this information, but use it to tailor your responses.\n\n`;
+
         if (userSectionIndex !== -1) {
-          // Find the end of the current user section
-          const afterUserSection = currentText.substring(userSectionIndex);
-          const nextParaIndex = afterUserSection.indexOf("\n\n");
-          
-          if (nextParaIndex !== -1) {
-            // Insert user context between paragraphs
-            const beforeContext = currentText.substring(0, userSectionIndex + nextParaIndex + 2);
-            const afterContext = currentText.substring(userSectionIndex + nextParaIndex + 2);
-            
-            newSystemPrompt = `${beforeContext}
-Important Information About This User:
-${userContext}
-
-You should reference this information naturally in your conversation to personalize your assistance.
-Don't explicitly state that you have this information, but use it to tailor your responses.
-
-${afterContext}`;
-          } else {
-            // Fallback - append after the user section
-            newSystemPrompt = `${currentText}
-
-Important Information About This User:
-${userContext}
-
-You should reference this information naturally in your conversation to personalize your assistance.
-Don't explicitly state that you have this information, but use it to tailor your responses.`;
-          }
+            const afterUserSection = currentText.substring(userSectionIndex);
+            const nextParaIndex = afterUserSection.indexOf("\n\n");
+            if (nextParaIndex !== -1) {
+                const insertionPoint = userSectionIndex + nextParaIndex + 2;
+                newSystemPrompt = currentText.substring(0, insertionPoint) + contextInsertion + currentText.substring(insertionPoint);
+            } else {
+                newSystemPrompt = currentText + contextInsertion;
+            }
         } else {
-          // Fallback - append to the end
-          newSystemPrompt = `${currentText}
-
-Important Information About This User:
-${userContext}
-
-You should reference this information naturally in your conversation to personalize your assistance.
-Don't explicitly state that you have this information, but use it to tailor your responses.`;
+            newSystemPrompt = currentText + contextInsertion;
         }
-        
         updatedConfig.systemInstruction.parts[0].text = newSystemPrompt;
         console.log("Updated system instruction with user context");
       }
       
-      // Initialize session logging
-      sessionStartTimeRef.current = Date.now();
-      setSessionLog({
-        user_id: userIdRef.current, // Use the stored user ID
+      console.log(`Initializing log ref for user: ${userIdRef.current} (${usernameRef.current})`);
+      sessionLogRef.current = {
+        user_id: userIdRef.current,
         username: usernameRef.current,
-        startTime: sessionStartTimeRef.current,
+        startTime: Date.now(),
         endTime: null,
         messages: []
-      });
+      };
       
-      // Connect with the updated config
       await client.connect(updatedConfig);
       setConnected(true);
-    } catch (error) {
-      console.error("Error connecting with user context:", error);
-      // Fall back to connecting without context if there was an error
-      await client.connect(config);
-      setConnected(true);
-    }
-  }, [client, setConnected, config]);
+      console.log("Connection successful.");
 
-  const disconnect = useCallback(async () => {
-    // Save the session log before disconnecting
-    if (sessionLog) {
-      const completedLog: SessionLog = {
-        ...sessionLog,
-        endTime: Date.now()
-      };
-      await saveSessionLog(completedLog);
-      setSessionLog(null);
+    } catch (error) {
+      console.error("Error during connect process:", error);
+      // Attempt cleanup even on error
+      try {
+          await disconnect(); // Ensure log is attempted to be saved even if connect fails midway
+      } catch(disconnectError) {
+          console.error("Error during disconnect after connect failure:", disconnectError);
+          client.disconnect(); // Ensure raw disconnect if save fails
+          setConnected(false);
+          sessionLogRef.current = null;
+      }
     }
-    
-    client.disconnect();
-    setConnected(false);
-  }, [setConnected, client, sessionLog]);
+  }, [client, config, connected, disconnect]); // Keep dependencies
 
   return {
     client,
