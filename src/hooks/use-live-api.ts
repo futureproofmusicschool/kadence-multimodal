@@ -121,30 +121,52 @@ export function useLiveAPI({
       if (userContext && updatedConfig.systemInstruction?.parts?.[0]?.text) {
         const currentText = updatedConfig.systemInstruction.parts[0].text;
         
-        // Find where to insert the context (after the "current user's name" section)
+        // Insert context in a more structured way for better AI use
+        let newSystemPrompt = currentText;
+        
+        // Find the best insertion point - after user introduction but before conversation guidance
         const userSectionIndex = currentText.indexOf("The current user's name is");
         
         if (userSectionIndex !== -1) {
-          // Add user context after the username section but before the next paragraph
-          const beforeContext = currentText.substring(0, userSectionIndex);
+          // Find the end of the current user section
           const afterUserSection = currentText.substring(userSectionIndex);
-          const splitIndex = afterUserSection.indexOf("\n\n");
+          const nextParaIndex = afterUserSection.indexOf("\n\n");
           
-          if (splitIndex !== -1) {
-            const userSection = afterUserSection.substring(0, splitIndex);
-            const afterSection = afterUserSection.substring(splitIndex);
+          if (nextParaIndex !== -1) {
+            // Insert user context between paragraphs
+            const beforeContext = currentText.substring(0, userSectionIndex + nextParaIndex + 2);
+            const afterContext = currentText.substring(userSectionIndex + nextParaIndex + 2);
             
-            const newText = `${beforeContext}${userSection}\n\nUser Context: ${userContext}${afterSection}`;
-            updatedConfig.systemInstruction.parts[0].text = newText;
+            newSystemPrompt = `${beforeContext}
+Important Information About This User:
+${userContext}
+
+You should reference this information naturally in your conversation to personalize your assistance.
+Don't explicitly state that you have this information, but use it to tailor your responses.
+
+${afterContext}`;
           } else {
-            // If splitting point not found, just append to the end
-            updatedConfig.systemInstruction.parts[0].text = `${currentText}\n\nUser Context: ${userContext}`;
+            // Fallback - append after the user section
+            newSystemPrompt = `${currentText}
+
+Important Information About This User:
+${userContext}
+
+You should reference this information naturally in your conversation to personalize your assistance.
+Don't explicitly state that you have this information, but use it to tailor your responses.`;
           }
         } else {
-          // If we can't find where to insert, just append to the end
-          updatedConfig.systemInstruction.parts[0].text = `${currentText}\n\nUser Context: ${userContext}`;
+          // Fallback - append to the end
+          newSystemPrompt = `${currentText}
+
+Important Information About This User:
+${userContext}
+
+You should reference this information naturally in your conversation to personalize your assistance.
+Don't explicitly state that you have this information, but use it to tailor your responses.`;
         }
         
+        updatedConfig.systemInstruction.parts[0].text = newSystemPrompt;
         console.log("Updated system instruction with user context");
       }
       
