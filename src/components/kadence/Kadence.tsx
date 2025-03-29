@@ -27,12 +27,26 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
 
   // Set system configuration on component mount or when username changes
   useEffect(() => {
+    // Get current date and time info
+    const now = new Date();
+    const currentDate = now.toLocaleDateString('en-US', { 
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    const currentTime = now.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    });
+    
     console.log("[Kadence] Setting system config...");
     setConfig({
       model: "models/gemini-2.0-flash-exp",
       generationConfig: {
         responseModalities: "audio",
-        maxOutputTokens: 300,
+        maxOutputTokens: 300, // Limiting response length to 300 tokens
         speechConfig: {
           voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } },
         },
@@ -43,6 +57,8 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
             text: `You are Kadence, an AI tutor at Futureproof Music School, specializing in electronic music production and creative direction. 
             Your core mission is to provide expert guidance to aspiring musicians in any language, helping them develop their production skills while finding their unique artistic voice.
             You respond to user voice inputs. You cannot view the user's screen or hear their music. Your main purpose is to provide helpful and informative responses to all user queries. Be concise, clear, and engaging in your responses.
+            
+            The current date is ${currentDate} and the current time is ${currentTime}.
             
             The current user's name is ${username}. Be friendly and supportive of their musical journey.
             
