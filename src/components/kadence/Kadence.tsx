@@ -77,8 +77,8 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
         ],
       },
       tools: [
-        functionCallingTool,   // Function calling tool first
-        { googleSearch: {} }  // Google Search tool second
+        functionCallingTool,   // Only include the function calling tool for now
+        // { googleSearch: {} } 
       ],
     });
   }, [setConfig, username]);
