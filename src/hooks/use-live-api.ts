@@ -108,8 +108,13 @@ export function useLiveAPI({
     // Store the original send method at the beginning of the effect
     originalSendRef.current = client.send;
   
+    // Debug logging for all major events
+    function onOpen() {
+      console.log("[DEBUG] WebSocket connection opened");
+    }
+    
     const onClose = () => {
-      console.log("Connection closed. Attempting to save log from ref.");
+      console.log("[DEBUG] WebSocket connection closed. Attempting to save log from ref.");
       setConnected(false);
       
       // Save the session log when disconnected, reading from the ref
@@ -128,127 +133,77 @@ export function useLiveAPI({
 
     const stopAudioStreamer = () => audioStreamerRef.current?.stop();
 
-    const onAudio = (data: ArrayBuffer) =>
+    const onAudio = (data: ArrayBuffer) => {
       audioStreamerRef.current?.addPCM16(new Uint8Array(data));
+    }
     
-    // Track assistant content for conversation logging
+    /**
+     * This is where we capture the assistant's responses
+     * The data from the Live API will be structured like:
+     * { modelTurn: { parts: [ { text: "...response text..." } ] } }
+     */
     const onContent = (content: any) => {
-      if (!sessionLogRef.current || !content) {
-        console.log("[useLiveAPI] Skipping content event - no session log or empty content");
+      console.log("[DEBUG] onContent event received:", typeof content);
+      
+      if (!sessionLogRef.current) {
+        console.log("[DEBUG] No session log ref found in onContent");
         return;
       }
       
-      console.log("[useLiveAPI] Got content event type:", typeof content);
-      // Safer logging that won't crash on circular references
       try {
-        console.log("[useLiveAPI] Got content event keys:", Object.keys(content));
-        if (content.text) console.log("[useLiveAPI] content.text exists:", content.text.substring(0, 50));
-        if (content.parts) console.log("[useLiveAPI] content.parts exists:", JSON.stringify(content.parts).substring(0, 50));
-        if (content.modelTurn) console.log("[useLiveAPI] content.modelTurn exists:", typeof content.modelTurn);
-      } catch (e) {
-        console.log("[useLiveAPI] Error logging content event:", e);
-      }
-      
-      // Try multiple possible content structures from Gemini Live API
-      let textContent = '';
-      
-      // Structure 1: content.modelTurn.parts (original expected structure)
-      if (content.modelTurn && content.modelTurn.parts) {
-        console.log("[useLiveAPI] Extracting from modelTurn.parts");
-        const parts = content.modelTurn.parts;
-        parts.forEach((part: any) => {
-          if (part.text) {
-            textContent += part.text;
+        // Content will be a ModelTurn object with parts from Live API
+        if (content && content.modelTurn && content.modelTurn.parts) {
+          // This is the structure directly from the Gemini Live API
+          const parts = content.modelTurn.parts;
+          let textContent = '';
+          
+          // Collect text from all parts
+          parts.forEach((part: any) => {
+            if (part.text) {
+              textContent += part.text;
+            }
+          });
+          
+          if (textContent) {
+            const newMessage: ConversationMessage = {
+              role: 'assistant',
+              content: textContent,
+              timestamp: Date.now()
+            };
+            
+            sessionLogRef.current.messages.push(newMessage);
+            console.log("[DEBUG] ✅ Assistant message added to session log:", 
+              textContent.substring(0, 50) + (textContent.length > 50 ? "..." : ""));
+            console.log("[DEBUG] Current message count:", sessionLogRef.current.messages.length);
           }
-        });
-      } 
-      // Structure 2: content.candidates[0].content.parts (alternative structure)
-      else if (content.candidates && content.candidates[0]?.content?.parts) {
-        console.log("[useLiveAPI] Extracting from candidates[0].content.parts");
-        const parts = content.candidates[0].content.parts;
-        parts.forEach((part: any) => {
-          if (part.text) {
-            textContent += part.text;
-          }
-        });
-      }
-      // Structure 3: direct text property
-      else if (content.text) {
-        console.log("[useLiveAPI] Extracting from direct text property");
-        textContent = content.text;
-      }
-      // Structure 4: content.parts array directly
-      else if (content.parts && Array.isArray(content.parts)) {
-        console.log("[useLiveAPI] Extracting from parts array");
-        content.parts.forEach((part: any) => {
-          if (part.text) {
-            textContent += part.text;
-          }
-        });
-      }
-      // Structure 5: content might be the raw chunk of text (streaming model)
-      else if (typeof content === 'string') {
-        console.log("[useLiveAPI] Content is a string, using directly");
-        textContent = content;
-      }
-      // Structure 6: content.transcript (common for audio/speech responses)
-      else if (content.transcript) {
-        console.log("[useLiveAPI] Extracting from transcript property");
-        textContent = content.transcript;
-      }
-      // Add any other structures you discover in your debugging
-      
-      if (textContent) {
-        const newMessage: ConversationMessage = {
-          role: 'assistant',
-          content: textContent,
-          timestamp: Date.now()
-        };
-        sessionLogRef.current.messages.push(newMessage); 
-        console.log("[useLiveAPI] ✅ Assistant message added to ref:", textContent.substring(0, 50) + "...");
-      } else {
-        console.log("[useLiveAPI] ❌ No text content found in event - structure may be different than expected");
-        // Log the full structure as a last resort to debug
-        try {
-          console.log("[useLiveAPI] Full content event:", JSON.stringify(content));
-        } catch (e) {
-          console.log("[useLiveAPI] Could not stringify full event:", e);
+        } else {
+          console.log("[DEBUG] ❓ Content event doesn't match expected structure:", content);
         }
+      } catch (error) {
+        console.error("[DEBUG] Error processing content event:", error, content);
       }
     };
     
-    // --- Monkey patch client.send --- 
+    // Manual patch of the send method to capture user messages
     if (originalSendRef.current && client.send === originalSendRef.current) {
-        const originalSend = originalSendRef.current; // Store in local variable to avoid null checks
-        client.send = (parts: any, turnComplete = true) => {
-          // First, add logging to see what's being sent
-          console.log("[useLiveAPI] client.send called with parts:", 
-            JSON.stringify(Array.isArray(parts) ? parts : [parts]).substring(0, 200) + "...");
-            
-          // Call the original method using the local variable
-          const result = originalSend.call(client, parts, turnComplete);
-          
-          // Now, log the user message using the ref
-          if (sessionLogRef.current) {
+      const originalSend = originalSendRef.current;
+      
+      client.send = (parts: any, turnComplete = true) => {
+        console.log("[DEBUG] client.send called");
+        
+        // First call the original method
+        const result = originalSend.call(client, parts, turnComplete);
+        
+        // Then extract and log user messages
+        if (sessionLogRef.current) {
+          try {
             let textContent = '';
             const partsArray = Array.isArray(parts) ? parts : [parts];
             
-            // Extract text from each part, considering different formats
             partsArray.forEach((part: any) => {
-              // 1. Direct text property
-              if (part.text) { 
+              if (part && typeof part === 'object' && part.text) {
                 textContent += part.text;
-              }
-              // 2. Text might be in content.parts[].text 
-              else if (part.content && Array.isArray(part.content.parts)) {
-                part.content.parts.forEach((contentPart: any) => {
-                  if (contentPart.text) {
-                    textContent += contentPart.text;
-                  }
-                });
-              }
-              // 3. Text might be directly in part
-              else if (typeof part === 'string') {
+              } else if (typeof part === 'string') {
                 textContent += part;
               }
             });
@@ -260,31 +215,38 @@ export function useLiveAPI({
                 timestamp: Date.now()
               };
               sessionLogRef.current.messages.push(newMessage);
-              console.log("[useLiveAPI] ✅ User message added to ref:", textContent.substring(0, 50) + "...");
+              console.log("[DEBUG] ✅ User message added to session log:", 
+                textContent.substring(0, 50) + (textContent.length > 50 ? "..." : ""));
+              console.log("[DEBUG] Current message count:", sessionLogRef.current.messages.length);
             } else {
-              console.log("[useLiveAPI] ❌ No text content found in send parts - structure may be different than expected");
+              console.log("[DEBUG] ⚠️ No text content found in send parts:", parts);
             }
+          } catch (error) {
+            console.error("[DEBUG] Error capturing user message:", error);
           }
-          
-          return result;
-        };
-        console.log("[useLiveAPI] Patched client.send for logging.");
+        }
+        
+        return result;
+      };
+      console.log("[DEBUG] Patched client.send method for message logging");
     }
-    // -----------------------------
 
+    // Attach event listeners to MultimodalLiveClient
     client
+      .on("open", onOpen)
       .on("close", onClose)
       .on("interrupted", stopAudioStreamer)
       .on("audio", onAudio)
       .on("content", onContent);
 
+    // Cleanup function
     return () => {
-      console.log("[useLiveAPI] Cleaning up listeners and restoring send.");
-      // Now check that both are non-null before comparison
+      console.log("[DEBUG] Cleaning up listeners and restoring send method");
       if (originalSendRef.current && client.send !== originalSendRef.current) {
         client.send = originalSendRef.current;
       }
       client
+        .off("open", onOpen)
         .off("close", onClose)
         .off("interrupted", stopAudioStreamer)
         .off("audio", onAudio)
