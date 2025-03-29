@@ -15,7 +15,7 @@
  */
 import { useEffect, memo, useRef } from "react";
 import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
-import { FunctionDeclaration, SchemaType } from "@google/generative-ai";
+import { FunctionDeclaration, SchemaType, Tool } from "@google/generative-ai";
 
 interface KadenceProps {
   username?: string;
@@ -29,6 +29,11 @@ const LATEST_TRACK_ANALYSIS_FUNCTION: FunctionDeclaration = {
     type: SchemaType.OBJECT,
     properties: {}, // No parameters needed from the model itself
   },
+};
+
+// Create a Tool object wrapping the function declaration
+const functionCallingTool: Tool = {
+  functionDeclarations: [LATEST_TRACK_ANALYSIS_FUNCTION],
 };
 
 function KadenceComponent({ username = 'student' }: KadenceProps) {
@@ -72,8 +77,8 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
         ],
       },
       tools: [
-        // { googleSearch: {} }, // Temporarily comment out Google Search
-        { functionDeclarations: [LATEST_TRACK_ANALYSIS_FUNCTION] }
+        { googleSearch: {} }, // Google Search tool
+        functionCallingTool   // Our function calling tool object
       ],
     });
   }, [setConfig, username]);
