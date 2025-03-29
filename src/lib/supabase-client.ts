@@ -7,6 +7,8 @@
  */
 export async function logConversation(userId: string, username: string, message: string, assistantResponse: string) {
   try {
+    console.log('Attempting to log conversation:', { userId, username, message: message.substring(0, 50) + '...', response: assistantResponse.substring(0, 50) + '...' });
+
     if (!userId || !username) {
       console.warn('Missing user information, skipping conversation logging');
       return false;
@@ -32,10 +34,10 @@ export async function logConversation(userId: string, username: string, message:
       return false;
     }
 
-    console.log('Successfully logged conversation');
+    console.log('Successfully sent conversation log request to API.');
     return true;
   } catch (error) {
-    console.error('Error logging conversation:', error);
+    console.error('Error in logConversation function:', error);
     return false;
   }
 } 
