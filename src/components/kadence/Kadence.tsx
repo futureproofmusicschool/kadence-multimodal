@@ -77,11 +77,8 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
         ],
       },
       tools: [
-        // Combine into a single object within the array
-        {
-          googleSearch: {}, 
-          functionDeclarations: [LATEST_TRACK_ANALYSIS_FUNCTION]
-        }
+        { googleSearch: {} }, // Test Google Search alone
+        // { functionDeclarations: [LATEST_TRACK_ANALYSIS_FUNCTION] } // Temporarily disable function calling
       ],
     });
   }, [setConfig, username]);
