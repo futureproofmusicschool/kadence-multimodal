@@ -239,6 +239,26 @@ export function useLiveAPI({
       .on("audio", onAudio)
       .on("content", onContent);
 
+    // Add listener for turn complete to log assistant audio turns
+    function onTurnComplete() {
+      console.log("[DEBUG] TurnComplete event received");
+      if (sessionLogRef.current) {
+         const messages = sessionLogRef.current.messages;
+         // Check if the last message was from the user
+         if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
+             const newMessage: ConversationMessage = {
+                role: 'assistant', // Log as assistant turn
+                content: "[Assistant Audio Response]", // Placeholder text
+                timestamp: Date.now()
+             };
+             sessionLogRef.current.messages.push(newMessage);
+             console.log("[DEBUG] ✅ Assistant Audio Turn logged (placeholder)");
+             console.log("[DEBUG] Current message count:", sessionLogRef.current.messages.length);
+         }
+      }
+    }
+    client.on("turncomplete", onTurnComplete);
+
     // Cleanup function
     return () => {
       console.log("[DEBUG] Cleaning up listeners and restoring send method");
@@ -250,7 +270,8 @@ export function useLiveAPI({
         .off("close", onClose)
         .off("interrupted", stopAudioStreamer)
         .off("audio", onAudio)
-        .off("content", onContent);
+        .off("content", onContent)
+        .off("turncomplete", onTurnComplete); // Clean up the new listener
     };
   }, [client]);
 
