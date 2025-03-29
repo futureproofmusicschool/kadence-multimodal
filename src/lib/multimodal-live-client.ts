@@ -181,9 +181,12 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
   }
 
   protected async receive(blob: Blob) {
+    console.log("[LiveClient] Received blob from WebSocket");
     const response: LiveIncomingMessage = (await blobToJSON(
       blob,
     )) as LiveIncomingMessage;
+    console.log("[LiveClient] Parsed response:", JSON.stringify(response).substring(0, 200));
+    
     if (isToolCallMessage(response)) {
       this.log("server.toolCall", response);
       this.emit("toolcall", response.toolCall);
@@ -217,6 +220,7 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
       }
 
       if (isModelTurn(serverContent)) {
+        console.log("[LiveClient] Processing ModelTurn...");
         let parts: Part[] = serverContent.modelTurn.parts;
 
         // when its audio that is returned for modelTurn
@@ -243,11 +247,12 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
         parts = otherParts;
 
         const content: ModelTurn = { modelTurn: { parts } };
+        console.log("[LiveClient] Emitting 'content' event with:", JSON.stringify(content).substring(0, 200));
         this.emit("content", content);
         this.log(`server.content`, response);
       }
     } else {
-      console.log("received unmatched message", response);
+      console.log("[LiveClient] Received unmatched message structure", response);
     }
   }
 
