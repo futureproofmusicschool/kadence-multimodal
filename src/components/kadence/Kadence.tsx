@@ -32,6 +32,7 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
       model: "models/gemini-2.0-flash-exp",
       generationConfig: {
         responseModalities: "audio",
+        maxOutputTokens: 300,
         speechConfig: {
           voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } },
         },
