@@ -123,24 +123,56 @@ export function useLiveAPI({
     const onContent = (content: any) => {
       if (!sessionLogRef.current || !content) return; 
       
+      console.log("[useLiveAPI] Got content event:", JSON.stringify(content).substring(0, 200) + "...");
+      
+      // Try multiple possible content structures from Gemini Live API
+      let textContent = '';
+      
+      // Structure 1: content.modelTurn.parts (original expected structure)
       if (content.modelTurn && content.modelTurn.parts) {
         const parts = content.modelTurn.parts;
-        let textContent = '';
         parts.forEach((part: any) => {
           if (part.text) {
             textContent += part.text;
           }
         });
-        
-        if (textContent) {
-          const newMessage: ConversationMessage = {
-            role: 'assistant',
-            content: textContent,
-            timestamp: Date.now()
-          };
-          sessionLogRef.current.messages.push(newMessage); 
-          console.log("[useLiveAPI] Assistant message added to ref:", textContent.substring(0, 50) + "...");
-        }
+      } 
+      // Structure 2: content.candidates[0].content.parts (alternative structure)
+      else if (content.candidates && content.candidates[0]?.content?.parts) {
+        const parts = content.candidates[0].content.parts;
+        parts.forEach((part: any) => {
+          if (part.text) {
+            textContent += part.text;
+          }
+        });
+      }
+      // Structure 3: direct text property
+      else if (content.text) {
+        textContent = content.text;
+      }
+      // Structure 4: content.parts array directly
+      else if (content.parts && Array.isArray(content.parts)) {
+        content.parts.forEach((part: any) => {
+          if (part.text) {
+            textContent += part.text;
+          }
+        });
+      }
+      // Structure 5: content might just be a string
+      else if (typeof content === 'string') {
+        textContent = content;
+      }
+      
+      if (textContent) {
+        const newMessage: ConversationMessage = {
+          role: 'assistant',
+          content: textContent,
+          timestamp: Date.now()
+        };
+        sessionLogRef.current.messages.push(newMessage); 
+        console.log("[useLiveAPI] ✅ Assistant message added to ref:", textContent.substring(0, 50) + "...");
+      } else {
+        console.log("[useLiveAPI] ❌ No text content found in event - structure may be different than expected");
       }
     };
     
@@ -148,15 +180,38 @@ export function useLiveAPI({
     const originalSendRef = useRef(client.send);
     if (client.send === originalSendRef.current) {
         client.send = (parts: any, turnComplete = true) => {
+          // First, add logging to see what's being sent
+          console.log("[useLiveAPI] client.send called with parts:", 
+            JSON.stringify(Array.isArray(parts) ? parts : [parts]).substring(0, 200) + "...");
+            
+          // Call the original method first
           const result = originalSendRef.current.call(client, parts, turnComplete);
+          
+          // Now, log the user message using the ref
           if (sessionLogRef.current) {
             let textContent = '';
             const partsArray = Array.isArray(parts) ? parts : [parts];
+            
+            // Extract text from each part, considering different formats
             partsArray.forEach((part: any) => {
+              // 1. Direct text property
               if (part.text) { 
                 textContent += part.text;
               }
+              // 2. Text might be in content.parts[].text 
+              else if (part.content && Array.isArray(part.content.parts)) {
+                part.content.parts.forEach((contentPart: any) => {
+                  if (contentPart.text) {
+                    textContent += contentPart.text;
+                  }
+                });
+              }
+              // 3. Text might be directly in part
+              else if (typeof part === 'string') {
+                textContent += part;
+              }
             });
+            
             if (textContent) {
               const newMessage: ConversationMessage = {
                 role: 'user',
@@ -164,9 +219,12 @@ export function useLiveAPI({
                 timestamp: Date.now()
               };
               sessionLogRef.current.messages.push(newMessage);
-              console.log("[useLiveAPI] User message added to ref:", textContent.substring(0, 50) + "...");
+              console.log("[useLiveAPI] ✅ User message added to ref:", textContent.substring(0, 50) + "...");
+            } else {
+              console.log("[useLiveAPI] ❌ No text content found in send parts - structure may be different than expected");
             }
           }
+          
           return result;
         };
         console.log("[useLiveAPI] Patched client.send for logging.");

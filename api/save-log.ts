@@ -61,11 +61,43 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     // --- Data Preparation --- 
     let rowsToInsert: any[]; // Define outside try block
     try {
+        console.log("Processing log messages. Total messages:", log.messages.length);
+        
+        if (log.messages.length === 0) {
+          console.log("WARNING: Received empty messages array!");
+          return res.status(200).json({ 
+            success: true, 
+            message: 'No messages to save', 
+            code: 'EMPTY_MESSAGES' 
+          });
+        }
+        
+        // Log the first few messages to debug
+        const messageSample = log.messages.slice(0, 3).map(msg => ({
+          role: msg.role,
+          contentPreview: msg.content.substring(0, 50),
+          timestamp: new Date(msg.timestamp).toISOString()
+        }));
+        console.log("Sample messages:", JSON.stringify(messageSample));
+
         const conversationPairs: { user_message: string, assistant_response: string, timestamp: number }[] = [];
         let currentUserMessage: ConversationMessage | null = null;
 
         for (const msg of log.messages) {
+          console.log(`Processing message with role: ${msg.role}`);
+          
           if (msg.role === 'user') {
+            // If we already have a user message without a response, handle it
+            if (currentUserMessage) {
+              console.log("Found user message with no response, saving alone:", 
+                currentUserMessage.content.substring(0, 30));
+              
+              conversationPairs.push({
+                user_message: currentUserMessage.content,
+                assistant_response: '', // Empty string for assistant response
+                timestamp: currentUserMessage.timestamp
+              });
+            }
             currentUserMessage = msg;
           } else if (msg.role === 'assistant' && currentUserMessage) {
             conversationPairs.push({
@@ -73,23 +105,38 @@ export default async (req: VercelRequest, res: VercelResponse) => {
               assistant_response: msg.content,
               timestamp: currentUserMessage.timestamp
             });
+            console.log("Created pair:", 
+              `Q: ${currentUserMessage.content.substring(0, 20)}...`, 
+              `A: ${msg.content.substring(0, 20)}...`);
             currentUserMessage = null;
+          } else if (msg.role === 'assistant' && !currentUserMessage) {
+            console.log("Found assistant message with no preceding user message:", 
+              msg.content.substring(0, 30));
+            // Handle assistant message without a user message
+            conversationPairs.push({
+              user_message: '[No user message]',
+              assistant_response: msg.content,
+              timestamp: msg.timestamp
+            });
           }
         }
+        
         // Handle last user message if no assistant response followed
         if (currentUserMessage) {
-           conversationPairs.push({
-             user_message: currentUserMessage.content,
-             assistant_response: '', // Empty string for assistant response
-             timestamp: currentUserMessage.timestamp
-           });
+          console.log("Handling final user message with no response");
+          conversationPairs.push({
+            user_message: currentUserMessage.content,
+            assistant_response: '', // Empty string for assistant response
+            timestamp: currentUserMessage.timestamp
+          });
         }
 
         if (conversationPairs.length === 0) {
-          console.log("No conversation pairs to save via API route.");
+          console.log("No conversation pairs created from", log.messages.length, "messages");
           return res.status(200).json({ success: true, message: 'No conversation pairs to save', code: 'NO_PAIRS' });
         }
 
+        console.log(`Created ${conversationPairs.length} conversation pairs from ${log.messages.length} messages`);
         rowsToInsert = conversationPairs.map(pair => ({
           user_id: log.user_id,
           username: log.username,
