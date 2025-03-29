@@ -44,12 +44,20 @@ function trackConversationPair(
   userMessages: ConversationMessage[],
   assistantMessages: ConversationMessage[]
 ) {
+  console.log('[trackConversationPair] Checking if logging is needed...', { 
+    userId, 
+    username, 
+    userMsgCount: userMessages.length, 
+    assistantMsgCount: assistantMessages.length 
+  });
+
   // Only log if we have both a user message and an assistant response
   if (userMessages.length > 0 && assistantMessages.length > 0) {
     // Get the latest user message and assistant response
     const latestUserMessage = userMessages[userMessages.length - 1];
     const latestAssistantMessage = assistantMessages[assistantMessages.length - 1];
     
+    console.log('[trackConversationPair] Logging to Supabase:', { userId, username, userMsg: latestUserMessage.content.substring(0,50)+'...', assistantMsg: latestAssistantMessage.content.substring(0,50)+'...'});
     // Log to Supabase
     logConversation(
       userId, 
@@ -156,6 +164,7 @@ export function useLiveAPI({
           // Track the assistant message
           assistantMessagesRef.current.push(newMessage);
           
+          console.log('[onContent] Assistant message received, attempting to track pair...');
           // Try to log the conversation pair to Supabase
           trackConversationPair(
             userIdRef.current,

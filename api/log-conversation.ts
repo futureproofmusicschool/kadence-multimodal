@@ -4,7 +4,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY || '';
-const conversationsTable = process.env.SUPABASE_TABLE || 'conversations';
+const conversationsTable = process.env.SUPABASE_TABLE || 'Member Logs';
 
 // Create Supabase client with server-side key
 const supabase = createClient(supabaseUrl, supabaseKey);
