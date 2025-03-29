@@ -15,36 +15,14 @@
  */
 import { useEffect, memo, useRef } from "react";
 import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
-import { FunctionDeclaration, SchemaType, Tool } from "@google/generative-ai";
 
 interface KadenceProps {
   username?: string;
 }
 
-// Define the function declaration schema
-const LATEST_TRACK_ANALYSIS_FUNCTION: FunctionDeclaration = {
-  name: "latest_track_analyses",
-  description: "Fetches the latest analysis of the user's most recently uploaded music track when the user asks about it, mentions uploaded music, attached audio, or asks Kadence to listen to something they provided.",
-  parameters: {
-    type: SchemaType.OBJECT,
-    properties: {}, // No parameters needed from the model itself
-  },
-};
-
-// Create a Tool object wrapping the function declaration
-const functionCallingTool: Tool = {
-  functionDeclarations: [LATEST_TRACK_ANALYSIS_FUNCTION],
-};
-
 function KadenceComponent({ username = 'student' }: KadenceProps) {
   const { client, setConfig, connected } = useLiveAPIContext();
   const hasInitiatedRef = useRef(false);
-  const usernameRef = useRef(username); // Store username in a ref
-
-  // Update username ref if prop changes
-  useEffect(() => {
-    usernameRef.current = username;
-  }, [username]);
 
   // Set system configuration on component mount or when username changes
   useEffect(() => {
@@ -77,8 +55,7 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
         ],
       },
       tools: [
-        functionCallingTool,   // Only include the function calling tool for now
-        // { googleSearch: {} } 
+        { googleSearch: {} }
       ],
     });
   }, [setConfig, username]);
@@ -93,13 +70,12 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
       hasInitiatedRef.current = true;
       
       // Send a minimal text part to prompt the AI's first turn (greeting)
-      // Use a slight delay just in case the connection needs a moment to settle
       const timer = setTimeout(() => {
-         if (client && connected) { // Double-check connection state
-            client.send([{ text: " " }], true); // Send a single space as a minimal prompt
+         if (client && connected) { 
+            client.send([{ text: " " }], true); 
             console.log("[Kadence] Initial empty prompt sent.");
          }
-      }, 200); // Small delay (200ms)
+      }, 200); 
       
       return () => clearTimeout(timer);
     }
@@ -109,10 +85,9 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
         hasInitiatedRef.current = false;
     }
     
-  }, [connected, client]); // Depend on connection state and client instance
+  }, [connected, client]); 
   
-  // This component doesn't need to render anything visible
   return null;
 }
 
-export const Kadence = memo(KadenceComponent); 
+export const Kadence = memo(KadenceComponent);
