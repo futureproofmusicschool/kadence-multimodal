@@ -3,6 +3,8 @@
   width: 100%;
   max-width: 100%;
   display: block;
+  font-family: "Courier", monospace;
+  font-size: 7px; /* 50% smaller font */
 
   .logger-list {
     padding: 0 20px 0 25px;
@@ -11,11 +13,13 @@
   }
 
   .user h4 {
-    color: var(--Green-500);
+    color: #4CAF50;
+    font-size: 7px;
   }
 
   .model h4 {
-    color: var(--Blue-500);
+    color: #b39ddb;
+    font-size: 7px;
   }
 
   .rich-log {
@@ -25,12 +29,13 @@
 
     pre {
       overflow-x: auto;
+      font-size: 7px;
     }
 
     display: block;
 
     h4 {
-      font-size: 14px;
+      font-size: 7px;
       text-transform: uppercase;
       padding: 8px 0;
       margin: 0;
@@ -40,14 +45,17 @@
       margin: 0;
       padding-bottom: 8px;
       border-bottom: 1px solid var(--Neutral-20);
+      font-size: 7px;
     }
 
     .part {
-      background: var(--Neutral-5);
+      background: rgba(0, 0, 0, 0.7);
       padding: 14px;
       margin-bottom: 4px;
-      color: var(--Neutral-90);
+      color: #E0E0E0;
       border-radius: 8px;
+      border: 1px solid #444444;
+      font-size: 7px;
     }
   }
 
@@ -59,6 +67,7 @@
 
   .inline-code:not(:last-child) {
     font-style: italic;
+    font-size: 7px;
 
     &::after {
       content: ", ";
@@ -68,13 +77,26 @@
 
 .logger li {
   display: block;
-  padding: 8px 0;
-  color: white;
+  padding: 6px 0;
+  color: #E0E0E0; /* Slightly less bright white for easier reading */
   font-family: "Courier", monospace;
-  font-size: 14px;
+  font-size: 7px; /* 50% smaller */
   font-style: normal;
   font-weight: 400;
   line-height: normal;
+  position: relative;
+  
+  /* CRT text effect */
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.3);
+  
+  /* Add a bit of spacing between log entries */
+  margin-bottom: 2px;
+  
+  &::before {
+    content: "> ";
+    color: #b39ddb;
+    opacity: 0.7;
+  }
 }
 
 .logger li .timestamp {
@@ -82,11 +104,13 @@
   flex-grow: 0;
   flex-shrink: 0;
   color: #a9a9a9;
+  font-size: 7px;
 }
 
 .logger li .source {
   flex-shrink: 0;
   font-weight: bold;
+  font-size: 7px;
 }
 
 .logger li.source-server,
@@ -101,7 +125,7 @@
 
 .logger li .count {
   background-color: var(--Neutral-5);
-  font-size: x-small;
+  font-size: 6px; /* even smaller */
   padding: 0em 0.6em;
   padding: 0.3em 0.5em;
   line-height: 1em;
@@ -113,4 +137,5 @@
 .logger li .message {
   flex-grow: 1;
   color: white;
+  font-size: 7px;
 }
