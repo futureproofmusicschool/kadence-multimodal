@@ -15,6 +15,7 @@
  */
 import { useEffect, memo, useRef } from "react";
 import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
+import { SchemaType } from "@google/generative-ai";
 
 interface KadenceProps {
   username?: string;
@@ -55,7 +56,23 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
         ],
       },
       tools: [
-        { googleSearch: {} }
+        { googleSearch: {} },
+        { functionDeclarations: [
+          {
+            name: "latest_track_analyses",
+            description: "Retrieves the latest music track analyses for a student when they mention their uploads, music, or tracks",
+            parameters: {
+              type: SchemaType.OBJECT,
+              properties: {
+                username: {
+                  type: SchemaType.STRING,
+                  description: "The username of the student whose track analyses should be retrieved"
+                }
+              },
+              required: ["username"]
+            }
+          }
+        ]}
       ],
     });
   }, [setConfig, username]);
