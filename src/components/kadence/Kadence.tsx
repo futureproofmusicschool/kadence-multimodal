@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { useEffect, memo, useRef } from "react";
+import { useEffect, memo } from "react";
 import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
 
 interface KadenceProps {
@@ -21,8 +21,7 @@ interface KadenceProps {
 }
 
 function KadenceComponent({ username = 'student' }: KadenceProps) {
-  const { client, setConfig, connected } = useLiveAPIContext();
-  const hasGreetedRef = useRef(false);
+  const { setConfig } = useLiveAPIContext();
 
   // Set system configuration on component mount
   useEffect(() => {
@@ -59,29 +58,6 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
       ],
     });
   }, [setConfig, username]);
-  
-  // Watch for the connection establishment and send greeting ONCE when connected
-  useEffect(() => {
-    // Only act when connection is newly established
-    if (connected && client && !hasGreetedRef.current) {
-      console.log("Connection established, scheduling greeting...");
-      
-      // Set the flag to prevent greeting multiple times
-      hasGreetedRef.current = true;
-      
-      // Short delay to make it seem more natural
-      const timer = setTimeout(() => {
-        if (client) {  // Double check client still exists
-          console.log("Sending greeting message");
-          client.send([{ 
-            text: `Hi ${username}, how's it going with your music today? I'm Kadence, your AI music tutor. I can help you with production techniques, creative direction, or any other music-related questions.` 
-          }]);
-        }
-      }, 1500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [connected, client, username]);
   
   // This component doesn't need to render anything visible
   return null;
