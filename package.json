@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "type": "module",
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.3",
     "@vercel/node": "^5.1.14",
     "classnames": "^2.5.1",
     "dotenv-flow": "^4.1.0",
