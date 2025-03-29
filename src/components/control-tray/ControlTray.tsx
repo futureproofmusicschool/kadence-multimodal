@@ -70,6 +70,7 @@ function ControlTray({
   const [audioRecorder] = useState(() => new AudioRecorder());
   const [muted, setMuted] = useState(false);
   const [hasSystemAudio, setHasSystemAudio] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const renderCanvasRef = useRef<HTMLCanvasElement>(null);
   const connectButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -184,6 +185,22 @@ function ControlTray({
     setSystemVolume(0);
   };
 
+  // Handle connection with loading state
+  const handleConnect = async () => {
+    if (connected) {
+      disconnect();
+    } else {
+      setIsConnecting(true);
+      try {
+        await connect();
+      } catch (error) {
+        console.error("Connection error:", error);
+      } finally {
+        setIsConnecting(false);
+      }
+    }
+  };
+
   return (
     <section className="control-tray">
       <canvas style={{ display: "none" }} ref={renderCanvasRef} />
@@ -233,15 +250,21 @@ function ControlTray({
         <div className="connection-button-container">
           <button
             ref={connectButtonRef}
-            className={cn("action-button connect-toggle", { connected })}
-            onClick={connected ? disconnect : connect}
+            className={cn("action-button connect-toggle", { 
+              connected,
+              connecting: isConnecting
+            })}
+            onClick={handleConnect}
+            disabled={isConnecting}
           >
             <span className="material-symbols-outlined filled">
-              {connected ? "pause" : "play_arrow"}
+              {isConnecting ? "hourglass_top" : connected ? "pause" : "play_arrow"}
             </span>
           </button>
         </div>
-        <span className="text-indicator">Streaming</span>
+        <span className="text-indicator">
+          {isConnecting ? 'Getting context...' : 'Streaming'}
+        </span>
       </div>
     </section>
   );

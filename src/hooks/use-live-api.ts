@@ -23,6 +23,7 @@ import { LiveConfig } from "../multimodal-live-types";
 import { AudioStreamer } from "../lib/audio-streamer";
 import { audioContext } from "../lib/utils";
 import VolMeterWorket from "../lib/worklets/vol-meter";
+import { fetchUserContext } from "../lib/user-context-service";
 
 export type UseLiveAPIResults = {
   client: MultimodalLiveClient;
@@ -90,13 +91,72 @@ export function useLiveAPI({
   }, [client]);
 
   const connect = useCallback(async () => {
-    console.log(config);
+    console.log("Starting connection with config:", config);
     if (!config) {
       throw new Error("config has not been set");
     }
+    
+    // Disconnect any existing connection
     client.disconnect();
-    await client.connect(config);
-    setConnected(true);
+    
+    try {
+      // Extract username from system instruction if available
+      let username = 'student';
+      const systemInstructionText = config.systemInstruction?.parts?.[0]?.text;
+      
+      if (systemInstructionText) {
+        // Try to extract username from system instruction text
+        const usernameMatch = systemInstructionText.match(/current user's name is ([^\.]+)/i);
+        if (usernameMatch && usernameMatch[1]) {
+          username = usernameMatch[1].trim();
+        }
+      }
+      
+      // Fetch user context from n8n webhook
+      const userContext = await fetchUserContext(username);
+      
+      // Create a new configuration with user context injected
+      let updatedConfig = { ...config };
+      
+      if (userContext && updatedConfig.systemInstruction?.parts?.[0]?.text) {
+        const currentText = updatedConfig.systemInstruction.parts[0].text;
+        
+        // Find where to insert the context (after the "current user's name" section)
+        const userSectionIndex = currentText.indexOf("The current user's name is");
+        
+        if (userSectionIndex !== -1) {
+          // Add user context after the username section but before the next paragraph
+          const beforeContext = currentText.substring(0, userSectionIndex);
+          const afterUserSection = currentText.substring(userSectionIndex);
+          const splitIndex = afterUserSection.indexOf("\n\n");
+          
+          if (splitIndex !== -1) {
+            const userSection = afterUserSection.substring(0, splitIndex);
+            const afterSection = afterUserSection.substring(splitIndex);
+            
+            const newText = `${beforeContext}${userSection}\n\nUser Context: ${userContext}${afterSection}`;
+            updatedConfig.systemInstruction.parts[0].text = newText;
+          } else {
+            // If splitting point not found, just append to the end
+            updatedConfig.systemInstruction.parts[0].text = `${currentText}\n\nUser Context: ${userContext}`;
+          }
+        } else {
+          // If we can't find where to insert, just append to the end
+          updatedConfig.systemInstruction.parts[0].text = `${currentText}\n\nUser Context: ${userContext}`;
+        }
+        
+        console.log("Updated system instruction with user context");
+      }
+      
+      // Connect with the updated config
+      await client.connect(updatedConfig);
+      setConnected(true);
+    } catch (error) {
+      console.error("Error connecting with user context:", error);
+      // Fall back to connecting without context if there was an error
+      await client.connect(config);
+      setConnected(true);
+    }
   }, [client, setConnected, config]);
 
   const disconnect = useCallback(async () => {

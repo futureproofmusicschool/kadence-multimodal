@@ -112,6 +112,37 @@
     background-color: var(--Blue-500);
     color: var(--Neutral-5);
   }
+  
+  &.connecting {
+    background-color: var(--Neutral-30);
+    color: var(--Neutral-5);
+    position: relative;
+    overflow: hidden;
+    
+    &:before {
+      content: '';
+      position: absolute;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent);
+      width: 150%;
+      height: 100%;
+      animation: loading-shimmer 1.5s infinite linear;
+      top: 0;
+      left: -50%;
+    }
+    
+    &:disabled {
+      cursor: wait;
+    }
+  }
+}
+
+@keyframes loading-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .control-tray {
