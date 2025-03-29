@@ -65,9 +65,24 @@ export async function saveSessionLog(log: SessionLog): Promise<boolean> {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('API route error response:', errorData);
-      throw new Error(`API route failed with status ${response.status}: ${errorData.error || 'Unknown error'}`);
+      let errorBody = `API route failed with status ${response.status}`;
+      try {
+        // Try to parse JSON error first
+        const errorData = await response.json();
+        console.error('API route error JSON response:', errorData);
+        errorBody += `: ${errorData.error || errorData.message || 'Unknown JSON error'}`;
+      } catch (jsonError) {
+        // If JSON parsing fails, read as text
+        try {
+          const errorText = await response.text();
+          console.error('API route error text response:', errorText);
+          errorBody += `. Response: ${errorText.substring(0, 200)}...`; // Log snippet
+        } catch (textError) {
+          console.error('Could not read API error response body.');
+          errorBody += ' (Could not read error response body)';
+        }
+      }
+      throw new Error(errorBody);
     }
 
     const result = await response.json();
