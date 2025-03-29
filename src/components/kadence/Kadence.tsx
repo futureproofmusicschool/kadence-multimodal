@@ -26,7 +26,7 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
   // Set system configuration on component mount
   useEffect(() => {
     setConfig({
-      model: "models/gemini-2.0-flash-exp",
+      model: "models/gemini-2.0-flash",
       generationConfig: {
         responseModalities: "audio",
         speechConfig: {
