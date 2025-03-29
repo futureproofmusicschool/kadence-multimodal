@@ -72,9 +72,8 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
         ],
       },
       tools: [
-        // there is a free-tier quota for search
-        { googleSearch: {} },
-        { functionDeclarations: [LATEST_TRACK_ANALYSIS_FUNCTION] },
+        // { googleSearch: {} }, // Temporarily comment out Google Search
+        { functionDeclarations: [LATEST_TRACK_ANALYSIS_FUNCTION] }
       ],
     });
   }, [setConfig, username]);
