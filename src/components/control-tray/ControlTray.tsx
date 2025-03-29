@@ -46,11 +46,11 @@ type MediaStreamButtonProps = {
 const MediaStreamButton = memo(
   ({ isStreaming, onIcon, offIcon, start, stop }: MediaStreamButtonProps) =>
     isStreaming ? (
-      <button className="action-button disabled-button" onClick={stop} disabled>
+      <button className="action-button" onClick={stop}>
         <span className="material-symbols-outlined">{onIcon}</span>
       </button>
     ) : (
-      <button className="action-button disabled-button" onClick={start} disabled>
+      <button className="action-button" onClick={start}>
         <span className="material-symbols-outlined">{offIcon}</span>
       </button>
     ),
