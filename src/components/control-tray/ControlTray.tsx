@@ -235,6 +235,10 @@ function ControlTray({
               onIcon="cancel_presentation"
               offIcon="present_to_all"
             />
+            {/* New file attachment button (currently inactive) */}
+            <button className="action-button disabled-button" disabled>
+              <span className="material-symbols-outlined">attach_file</span>
+            </button>
             {hasSystemAudio && screenCapture.isStreaming && (
               <div className="system-audio-indicator">
                 <span className="material-symbols-outlined">volume_up</span>
