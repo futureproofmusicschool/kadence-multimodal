@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { useEffect, memo } from "react";
+import { useEffect, memo, useRef } from "react";
 import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
 
 interface KadenceProps {
@@ -21,10 +21,12 @@ interface KadenceProps {
 }
 
 function KadenceComponent({ username = 'student' }: KadenceProps) {
-  const { setConfig } = useLiveAPIContext();
+  const { client, setConfig, connected } = useLiveAPIContext();
+  const hasInitiatedRef = useRef(false);
 
-  // Set system configuration on component mount
+  // Set system configuration on component mount or when username changes
   useEffect(() => {
+    console.log("[Kadence] Setting system config...");
     setConfig({
       model: "models/gemini-2.0-flash-exp",
       generationConfig: {
@@ -42,8 +44,8 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
             
             The current user's name is ${username}. Be friendly and supportive of their musical journey.
             
-            Start the conversation by greeting ${username} and asking how their music is going today. 
-            Do not mention their name again in the conversation.
+            IMPORTANT: Start the conversation *immediately* by greeting ${username} by name and asking how their music is going today. Then wait for their response. 
+            Do not mention their name again after the initial greeting.
             
             Notes on Pronounciation:
             
@@ -58,6 +60,34 @@ function KadenceComponent({ username = 'student' }: KadenceProps) {
       ],
     });
   }, [setConfig, username]);
+  
+  // Effect to send initial prompt *once* when connected
+  useEffect(() => {
+    // Only run when connected and we haven't initiated yet
+    if (connected && client && !hasInitiatedRef.current) {
+      console.log("[Kadence] Connection established. Sending initial empty prompt to trigger greeting...");
+      
+      // Mark as initiated to prevent re-sending
+      hasInitiatedRef.current = true;
+      
+      // Send a minimal text part to prompt the AI's first turn (greeting)
+      // Use a slight delay just in case the connection needs a moment to settle
+      const timer = setTimeout(() => {
+         if (client && connected) { // Double-check connection state
+            client.send([{ text: " " }], true); // Send a single space as a minimal prompt
+            console.log("[Kadence] Initial empty prompt sent.");
+         }
+      }, 200); // Small delay (200ms)
+      
+      return () => clearTimeout(timer);
+    }
+    
+    // Reset the flag if connection drops
+    if (!connected) {
+        hasInitiatedRef.current = false;
+    }
+    
+  }, [connected, client]); // Depend on connection state and client instance
   
   // This component doesn't need to render anything visible
   return null;
